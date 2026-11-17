@@ -146,6 +146,7 @@
   const SCREENS = ['title', 'map', 'pause', 'clear', 'over', 'ending'];
   function screen(id) {
     SCREENS.forEach((s) => { $(s).hidden = s !== id; });
+    if (id) $('banner').hidden = true;
     if (id) { const b = $(id).querySelector('.go'); if (b) setTimeout(() => b.focus({ preventScroll: true }), 30); }
     else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
@@ -172,7 +173,7 @@
   }
   const KEYS2 = ['<kbd>A</kbd> <kbd>D</kbd> andar · <kbd>W</kbd> pular', '<kbd>←</kbd> <kbd>→</kbd> andar · <kbd>↑</kbd> pular'];
   const KEYS1 = '<kbd>A</kbd> <kbd>D</kbd> ou <kbd>←</kbd> <kbd>→</kbd> andar · <kbd>W</kbd> <kbd>↑</kbd> <kbd>Espaço</kbd> pular';
-  const BIO = ['Camisa preta, barba e óculos escuros quando tem sol', 'Coque, brinco dourado e um look colorido em cada destino'];
+  const BIO = ['25 anos e tricolor. Cuida de passagem, hospedagem e roteiro.', '26 anos. Escolhe os lugares, monta os looks e acha que é só passar o cartão.'];
   function buildTitle() {
     $('paxes').innerHTML = [0, 1].map((c) =>
       '<button type="button" class="pax" data-c="' + c + '"><canvas width="64" height="96" aria-hidden="true"></canvas><span class="pax-txt">' +
@@ -283,8 +284,7 @@
     G.state = 'ending'; G.L = null; setHud(false);
     let total = 0, st = 0;
     for (let i = 0; i < PF.LEVEL_COUNT; i++) { total += prog(i).best; st += prog(i).stamps.filter(Boolean).length; }
-    const who = G.mode === 2 ? 'Patryck e Mari' : pname(save.solo);
-    $('endText').textContent = who + (G.mode === 2 ? ' rodaram' : ' rodou') + ' de São Paulo ao Paraguai, pagaram todas as parcelas e ainda voltaram com vídeo pra postar. ' + (st === 18 ? 'Passaporte completo, todos os carimbos!' : 'Ainda faltam carimbos no passaporte: dá pra voltar e buscar.');
+    $('endText').textContent = (G.mode === 2 ? 'O Patryck reservou as passagens, a Mari escolheu os lugares e montou os looks, e os dois rodaram de São Paulo ao Paraguai pagando todas as parcelas. ' : save.solo === 0 ? 'O Patryck reservou tudo, fez o roteiro e rodou de São Paulo ao Paraguai pagando todas as parcelas. ' : 'A Mari escolheu cada lugar, montou cada look e rodou de São Paulo ao Paraguai. Bastou passar o cartão. ') + (st === 18 ? 'Passaporte completo, todos os carimbos!' : 'Ainda faltam carimbos no passaporte: dá pra voltar e buscar.');
     $('endTally').innerHTML = '<div><dt>Destinos</dt><dd>6 de 6</dd></div><div><dt>Carimbos</dt><dd>' + st + ' de 18</dd></div><div class="sum"><dt>Inscritos no canal</dt><dd>' + fmt(total) + '</dd></div>';
     screen('ending'); PF.audio.music('menu');
   }
@@ -525,7 +525,7 @@
       for (const s of L.stamps) if (!s.got && hit(p, s.x, s.y, 7, 7)) { s.got = true; G.got[s.idx] = true; sfx('stamp'); sparkle(s.x, s.y, '#ff8a8a', 12); pop('CARIMBO!', s.x, s.y - 12, '#ffb3b3'); }
       for (const k of G.picks) if (!k.got && k.t > 0.25 && hit(p, k.x, k.y, 7, 6)) {
         k.got = true;
-        if (k.kind === 'card') { G.players.forEach((q) => { if (alive(q)) q.star = 9; }); sfx('power'); pop('SEM JUROS!', k.x, k.y - 12, '#ffe38a'); }
+        if (k.kind === 'card') { G.players.forEach((q) => { if (alive(q)) q.star = 9; }); sfx('power'); pop(p.c === 1 ? 'É SÓ PASSAR O CARTÃO!' : 'SEM JUROS!', k.x, k.y - 12, '#ffe38a'); }
         else {
           const tgt = p.hp < 3 ? p : G.players.find((q) => alive(q) && q.hp < 3);
           if (tgt) tgt.hp++;

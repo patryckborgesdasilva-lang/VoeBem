@@ -77,7 +77,7 @@ h1, h2 { font-family: var(--f-display); font-weight: 700; margin: 0; line-height
 .pass-head { background: var(--mist); color: var(--ink); padding: 12px 20px 12px; display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; align-items: center; }
 .pass-head .eyebrow { margin-bottom: 6px; color: var(--muted); }
 .logo { margin: 0; line-height: 0; }
-.logo img { display: block; height: clamp(120px, 22vw, 168px); width: auto; max-width: 100%; }
+.logo img { display: block; height: clamp(126px, 22vw, 189px); width: auto; max-width: 100%; image-rendering: pixelated; }
 .tagline { margin: 0; font: 700 14px/1.25 var(--f-display); color: #fff; background: var(--coral); padding: 5px 10px; border-radius: 6px; transform: rotate(-2deg); }
 .pass-body { padding: 14px 20px 18px; display: grid; gap: 14px; }
 .mode { display: inline-flex; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; justify-self: start; }
@@ -158,7 +158,7 @@ h1, h2 { font-family: var(--f-display); font-weight: 700; margin: 0; line-height
   .pass { grid-template-columns: minmax(0, 1fr); }
   .pass-stub { display: none; }
   .pass-head { flex-direction: column; text-align: center; }
-  .logo img { margin-inline: auto; height: 150px; }
+  .logo img { margin-inline: auto; height: 189px; }
   .paxes { grid-template-columns: minmax(0, 1fr); }
   .map-grid { grid-template-columns: minmax(0, 1fr); }
   #mapSvg { max-height: 34vh; }
@@ -167,7 +167,7 @@ h1, h2 { font-family: var(--f-display); font-weight: 700; margin: 0; line-height
 @media (max-height: 520px) and (min-width: 681px) {
   .pass-body { gap: 9px; padding-block: 10px 12px; }
   .pass-head { padding-block: 8px; }
-  .logo img { height: 92px; }
+  .logo img { height: 126px; }
   .pax canvas { width: 54px; height: 78px; }
   .pax { grid-template-columns: 54px minmax(0, 1fr); padding: 7px; }
   .route { display: none; }
@@ -202,7 +202,7 @@ h1, h2 { font-family: var(--f-display); font-weight: 700; margin: 0; line-height
         <header class="pass-head">
           <div>
             <p class="eyebrow">Cartão de embarque · Boarding pass</p>
-            <h1 class="logo"><img src="img/logo.png" alt="Parcelei e fui" width="349" height="360"></h1>
+            <h1 class="logo"><img src="img/logo-pixel.png" alt="Parcelei e fui" width="122" height="126"></h1>
           </div>
           <p class="tagline">o jogo da nossa viagem,<br>em 6x sem juros</p>
         </header>
