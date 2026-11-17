@@ -337,6 +337,21 @@
     });
   }
 
+  function bigBag() {
+    return sprite(32, 32, (x, R) => {
+      const dk = '#09160d', o = '#e86a2a';
+      R(11, 0, 10, 2, dk); R(11, 0, 2, 5, dk); R(19, 0, 2, 5, dk);
+      R(1, 4, 30, 26, o); R(1, 4, 30, 2, '#ff9a5a'); R(1, 28, 30, 2, '#a8451a');
+      R(9, 6, 1, 22, '#c1531f'); R(22, 6, 1, 22, '#c1531f');
+      R(1, 4, 3, 3, dk); R(28, 4, 3, 3, dk); R(1, 27, 3, 3, dk); R(28, 27, 3, 3, dk);
+      R(1, 15, 30, 3, '#3a6a34'); R(1, 15, 30, 1, '#93c06c'); R(14, 14, 4, 5, '#ffd34d'); R(15, 15, 2, 3, '#b86e0c');
+      R(4, 8, 5, 5, '#93c06c'); R(5, 9, 1, 3, dk); R(6, 9, 1, 1, dk); R(7, 10, 1, 1, dk);
+      R(24, 20, 5, 4, '#ffffff'); R(24, 20, 5, 1, '#d52b1e'); R(24, 23, 5, 1, '#0038a8');
+      R(4, 20, 5, 4, '#2e86de'); R(5, 21, 3, 1, '#ffffff'); R(6, 22, 1, 1, '#ffffff');
+      R(24, 7, 4, 4, '#ffd34d'); R(25, 8, 2, 2, '#ff650e');
+      R(4, 30, 4, 2, dk); R(24, 30, 4, 2, dk);
+    });
+  }
   let SPR = null;
   PF.sprites = function () {
     if (SPR) return SPR;
@@ -356,6 +371,7 @@
       coin: [coin(10), coin(6), coin(2), coin(6)],
       stamp: stamp(), card: card(), food,
       box: mala(false), boxUsed: mala(true),
+      bigBag: bigBag(),
       check: [dinherin(0), dinherin(1), dinherin(2)], goal: [donaCartao(0), donaCartao(1)], chute: chute(),
     };
     return SPR;
