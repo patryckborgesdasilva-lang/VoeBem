@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parcelei e Fui</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Pixelify+Sans:wght@400;600;700&display=swap">
+<style>
+/* Layout: jogo em tela cheia; os menus são cartões de embarque e páginas de passaporte sobre o cenário. */
+:root {
+  --night: #141c38;
+  --ink: #1b2440;
+  --paper: #f6f8fc;
+  --line: #c8d1e4;
+  --muted: #56617f;
+  --sun: #ffc93c;
+  --coral: #ff5a5f;
+  --mint: #0f9d8e;
+  --sea: #cfe3f5;
+  --land: #e3ead8;
+  --f-display: 'Pixelify Sans', 'Trebuchet MS', system-ui, sans-serif;
+  --f-data: 'DM Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--night); color: var(--paper); font: 14px/1.45 var(--f-data); overflow: hidden; -webkit-tap-highlight-color: transparent; }
+*, *::before, *::after { box-sizing: border-box; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+
+#app { position: relative; height: 100%; overflow: hidden; background: var(--night); }
+#cv { position: absolute; display: block; image-rendering: pixelated; touch-action: none; }
+
+/* ---------- HUD ---------- */
+#hud { position: absolute; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; padding: 6px 10px; font-family: var(--f-display); font-size: clamp(11px, 1.7vw, 16px); line-height: 1.2; pointer-events: none; text-shadow: 0 1px 0 var(--ink), 1px 0 0 var(--ink), -1px 0 0 var(--ink), 0 -1px 0 var(--ink), 0 2px 0 rgba(20, 28, 56, .6); }
+.hud-l, .hud-r { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+.hud-r { justify-content: flex-end; }
+.ptag b { font-weight: 700; margin-right: 4px; }
+.ptag .hp { color: var(--coral); letter-spacing: 1px; }
+.ptag .hp i { font-style: normal; opacity: .28; }
+.ptag.out { opacity: .5; }
+.stat { white-space: nowrap; }
+.stat small { font: 500 .72em var(--f-data); letter-spacing: .08em; opacity: .9; margin-right: 3px; }
+.stat b { color: var(--sun); font-weight: 700; font-variant-numeric: tabular-nums; }
+.hud-btn { pointer-events: auto; font: 700 1em var(--f-display); width: 2em; height: 2em; border: 2px solid var(--ink); border-radius: 6px; background: var(--paper); color: var(--ink); text-shadow: none; padding: 0; }
+.hud-btn[aria-pressed="true"] { background: var(--line); color: var(--muted); text-decoration: line-through; }
+
+/* ---------- controles de toque ---------- */
+#touch { position: absolute; inset: 0; pointer-events: none; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; justify-content: space-between; align-items: flex-end; }
+.pad { display: grid; grid-template-columns: repeat(2, 62px); gap: 8px; pointer-events: none; }
+.pad.jump { grid-template-columns: 84px; }
+.tb { pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; height: 62px; border-radius: 16px; border: 2px solid rgba(246, 248, 252, .7); background: rgba(27, 36, 64, .55); color: var(--paper); font: 700 22px var(--f-display); }
+.tb.wide { grid-column: 1 / -1; height: 54px; }
+.pad.jump .tb { height: 84px; border-radius: 50%; }
+.tb.on { background: var(--sun); color: var(--ink); border-color: var(--ink); }
+.pad[data-p="1"] .tb { border-color: rgba(255, 143, 171, .9); }
+
+/* ---------- telas ---------- */
+.screen { position: absolute; inset: 0; display: grid; place-items: center; overflow: auto; padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: rgba(20, 28, 56, .5); }
+.eyebrow { margin: 0; font: 500 11px var(--f-data); letter-spacing: .14em; text-transform: uppercase; }
+h1, h2 { font-family: var(--f-display); font-weight: 700; margin: 0; line-height: 1; text-wrap: balance; }
+.btn { font: 700 18px var(--f-display); padding: 10px 18px; border-radius: 10px; border: 2px solid var(--ink); background: var(--paper); color: var(--ink); box-shadow: 0 4px 0 var(--ink); }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+.btn.go { background: var(--sun); }
+.btn.quiet { box-shadow: none; border-color: var(--line); font-size: 15px; font-weight: 600; }
+
+/* cartão de embarque (título) */
+.pass { width: min(880px, 100%); display: grid; grid-template-columns: minmax(0, 1fr) 168px; background: var(--paper); color: var(--ink); border-radius: 14px; box-shadow: 0 10px 0 rgba(10, 14, 32, .45); overflow: hidden; }
+.pass-head { background: var(--coral); color: #fff; padding: 14px 20px 12px; display: flex; flex-wrap: wrap; gap: 6px 20px; justify-content: space-between; align-items: flex-end; }
+.pass-head h1 { font-size: clamp(34px, 6.4vw, 54px); letter-spacing: .01em; text-shadow: 3px 3px 0 var(--ink); }
+.pass-head .eyebrow { margin-bottom: 6px; color: #fff; }
+.tagline { margin: 0; font: 600 15px/1.25 var(--f-display); color: var(--ink); background: var(--sun); padding: 4px 8px; border-radius: 4px; transform: rotate(-2deg); }
+.pass-body { padding: 14px 20px 18px; display: grid; gap: 14px; }
+.mode { display: inline-flex; border: 2px solid var(--ink); border-radius: 10px; overflow: hidden; justify-self: start; }
+.mode button { font: 600 15px var(--f-display); padding: 7px 14px; border: 0; background: transparent; color: var(--ink); }
+.mode button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.paxes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.pax { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; padding: 10px; border: 2px dashed var(--line); border-radius: 10px; min-width: 0; }
+.pax.off { opacity: .35; pointer-events: none; }
+.pax canvas { width: 72px; height: 104px; image-rendering: pixelated; background: var(--sea); border-radius: 6px; }
+.pax label { display: block; font: 500 10px var(--f-data); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.pax input { width: 100%; margin: 2px 0 8px; padding: 4px 0; border: 0; border-bottom: 2px solid var(--ink); background: transparent; color: var(--ink); font: 700 20px var(--f-display); border-radius: 0; }
+.pax input::placeholder { color: var(--line); }
+.cyc { display: flex; flex-wrap: wrap; gap: 5px; }
+.cyc button { font: 500 11px var(--f-data); padding: 4px 7px; border: 1.5px solid var(--ink); border-radius: 6px; background: #fff; color: var(--ink); }
+.cyc button:hover { background: var(--sun); }
+.keys { margin: 8px 0 0; font-size: 11.5px; color: var(--muted); }
+.keys kbd { font: 500 11px var(--f-data); background: var(--ink); color: var(--paper); border-radius: 4px; padding: 1px 5px; }
+.route { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px 14px; margin: 0; border-top: 2px solid var(--line); padding-top: 12px; }
+.route dt { font: 500 10px var(--f-data); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.route dd { margin: 0; font: 700 17px var(--f-display); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.hint { margin: 0; font-size: 12px; color: var(--muted); max-width: 46ch; }
+.pass-stub { border-left: 3px dashed var(--line); padding: 16px 14px; display: flex; flex-direction: column; gap: 12px; justify-content: space-between; background: #fff; }
+.pass-stub .big { font: 700 34px/0.95 var(--f-display); color: var(--coral); margin: 0; }
+.pass-stub p { margin: 0; font-size: 11px; letter-spacing: .08em; color: var(--muted); }
+.pass-stub strong { display: block; font: 700 17px var(--f-display); color: var(--ink); letter-spacing: 0; }
+.barcode { height: 54px; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 9px, var(--ink) 9px 12px, transparent 12px 14px); }
+
+/* passaporte (roteiro) */
+.passport { width: min(900px, 100%); background: var(--paper); color: var(--ink); border-radius: 14px; box-shadow: 0 10px 0 rgba(10, 14, 32, .45); padding: 16px 18px; display: grid; gap: 12px; }
+.passport header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+.passport h2 { font-size: clamp(24px, 4vw, 34px); }
+.totals { margin: 0; font-size: 12.5px; color: var(--muted); }
+.totals b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.map-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 16px; align-items: center; }
+#mapSvg { width: 100%; height: auto; max-height: 52vh; background: var(--sea); border-radius: 10px; border: 2px solid var(--ink); }
+#mapSvg text { font: 600 13px var(--f-display); fill: var(--ink); paint-order: stroke; stroke: var(--land); stroke-width: 3px; }
+#mapSvg text.sm { font: 500 8px var(--f-data); letter-spacing: .1em; stroke: none; fill: var(--muted); }
+.dests { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.dest { width: 100%; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; text-align: left; padding: 7px 10px; border: 2px solid var(--ink); border-radius: 10px; background: #fff; color: var(--ink); }
+.dest .n { grid-row: span 2; font: 700 22px var(--f-display); color: var(--coral); }
+.dest .city { font: 700 17px/1.1 var(--f-display); min-width: 0; overflow-wrap: anywhere; }
+.dest .sub { grid-column: 2; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.dest .st { grid-row: span 2; display: flex; gap: 4px; }
+.dest .st i { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--coral); }
+.dest .st i.on { background: var(--coral); box-shadow: inset 0 0 0 2px #fff; }
+.dest:hover:not(:disabled), .dest:focus-visible { background: var(--sun); }
+.dest.done .n { color: var(--mint); }
+.dest:disabled { border-style: dashed; border-color: var(--line); color: var(--muted); cursor: not-allowed; background: transparent; }
+.dest:disabled .n { color: var(--line); }
+.dest:disabled .st i { border-color: var(--line); }
+.passport footer { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; align-items: center; }
+
+/* cartões de fase */
+.card { width: min(460px, 100%); background: var(--paper); color: var(--ink); border-radius: 14px; box-shadow: 0 10px 0 rgba(10, 14, 32, .45); padding: 18px 20px; display: grid; gap: 12px; }
+.card h2 { font-size: clamp(28px, 6vw, 40px); color: var(--coral); text-shadow: 2px 2px 0 var(--ink); }
+.card p { margin: 0; }
+.card .eyebrow { color: var(--muted); }
+.tally { margin: 0; display: grid; gap: 3px; font-variant-numeric: tabular-nums; }
+.tally div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding: 2px 0; }
+.tally dt { color: var(--muted); }
+.tally dd { margin: 0; font-weight: 500; }
+.tally .sum { border-bottom: 0; border-top: 2px solid var(--ink); padding-top: 6px; margin-top: 3px; font: 700 20px var(--f-display); }
+.tally .sum dt { color: var(--ink); }
+.tally .sum dd { color: var(--mint); font-weight: 700; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+#banner { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); text-align: center; background: var(--paper); color: var(--ink); border-radius: 12px; padding: 10px 20px 12px; box-shadow: 0 6px 0 rgba(10, 14, 32, .45); pointer-events: none; animation: banner 3s ease both; }
+#banner h2 { font-size: clamp(24px, 5vw, 38px); color: var(--coral); text-shadow: 2px 2px 0 var(--ink); margin-top: 4px; }
+#banner p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+@keyframes banner { 0% { opacity: 0; transform: translate(-50%, -14px); } 10%, 82% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -8px); } }
+@media (prefers-reduced-motion: reduce) { #banner { animation-name: bannerFade; } @keyframes bannerFade { 0%, 90% { opacity: 1; } 100% { opacity: 0; } } }
+
+@media (max-width: 680px) {
+  .pass { grid-template-columns: minmax(0, 1fr); }
+  .pass-stub { display: none; }
+  .paxes { grid-template-columns: minmax(0, 1fr); }
+  .map-grid { grid-template-columns: minmax(0, 1fr); }
+  #mapSvg { max-height: 34vh; }
+  .screen { place-items: start center; }
+}
+@media (max-height: 520px) and (min-width: 681px) {
+  .pass-body { gap: 9px; padding-block: 10px 12px; }
+  .pass-head { padding-block: 8px; }
+  .pass-head h1 { font-size: 34px; }
+  .pax canvas { width: 54px; height: 78px; }
+  .pax { grid-template-columns: 54px minmax(0, 1fr); padding: 7px; }
+  .route { display: none; }
+  .screen { place-items: start center; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="cv" aria-label="Jogo Parcelei e Fui"></canvas>
+
+  <div id="hud" hidden>
+    <div class="hud-l">
+      <span class="ptag" id="pt0"><b></b><span class="hp"></span></span>
+      <span class="ptag" id="pt1"><b></b><span class="hp"></span></span>
+    </div>
+    <div class="hud-r">
+      <span class="stat"><small>MOEDAS</small><b id="hCoins">0</b></span>
+      <span class="stat"><small>CARIMBOS</small><b id="hStamps">0/3</b></span>
+      <span class="stat"><small>LIMITE</small><b id="hLives">×5</b></span>
+      <button type="button" class="hud-btn" id="btnMute" aria-pressed="false" aria-label="Som">♪</button>
+      <button type="button" class="hud-btn" id="btnPause" aria-label="Pausar">II</button>
+    </div>
+  </div>
+
+  <div id="touch" hidden></div>
+  <div id="banner" hidden></div>
+
+  <section id="title" class="screen">
+    <div class="pass">
+      <div>
+        <header class="pass-head">
+          <div>
+            <p class="eyebrow">Cartão de embarque · Boarding pass</p>
+            <h1>Parcelei e Fui</h1>
+          </div>
+          <p class="tagline">o jogo da nossa viagem,<br>em 6x sem juros</p>
+        </header>
+        <div class="pass-body">
+          <div class="mode" role="group" aria-label="Número de jogadores">
+            <button type="button" id="mode1" aria-pressed="false">1 jogador</button>
+            <button type="button" id="mode2" aria-pressed="true">2 jogadores</button>
+          </div>
+          <div class="paxes" id="paxes"></div>
+          <dl class="route">
+            <div><dt>De</dt><dd>São Paulo</dd></div>
+            <div><dt>Para</dt><dd>Paraguai</dd></div>
+            <div><dt>Escalas</dt><dd>6 destinos</dd></div>
+            <div><dt>Portão</dt><dd>12X</dd></div>
+          </dl>
+          <div class="actions">
+            <button type="button" id="btnStart" class="btn go">Embarcar ▶</button>
+            <p class="hint">Jogam os dois na mesma tela. Com um controle USB ou Bluetooth, ele comanda o passageiro 2; com dois, um para cada.</p>
+          </div>
+        </div>
+      </div>
+      <aside class="pass-stub" aria-hidden="true">
+        <p class="big">6x<br>sem<br>juros</p>
+        <p>VOO<strong>PF 0612</strong></p>
+        <p>ASSENTO<strong>1A · 1B</strong></p>
+        <div class="barcode"></div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="map" class="screen" hidden>
+    <div class="passport">
+      <header>
+        <h2>Roteiro da viagem</h2>
+        <p class="totals" id="mapTotals"></p>
+      </header>
+      <div class="map-grid">
+        <svg id="mapSvg" viewBox="0 0 460 430" role="img" aria-label="Mapa com a rota: São Paulo, Balneário Camboriú, Bariloche, Buenos Aires, Foz do Iguaçu e Paraguai"></svg>
+        <ol class="dests" id="dests"></ol>
+      </div>
+      <footer>
+        <button type="button" id="btnBack" class="btn quiet">◀ Passageiros</button>
+        <p class="hint">Cada destino é uma parcela. Quite uma para liberar a próxima.</p>
+      </footer>
+    </div>
+  </section>
+
+  <section id="pause" class="screen" hidden>
+    <div class="card">
+      <p class="eyebrow">Escala técnica</p>
+      <h2>Pausa</h2>
+      <div class="row">
+        <button type="button" id="btnResume" class="btn go">Continuar</button>
+        <button type="button" id="btnRetryP" class="btn">Recomeçar fase</button>
+        <button type="button" id="btnMapP" class="btn quiet">Roteiro</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="clear" class="screen" hidden>
+    <div class="card">
+      <p class="eyebrow" id="clearEyebrow">Parcela quitada</p>
+      <h2>Vídeo postado!</h2>
+      <dl class="tally" id="tally"></dl>
+      <div class="row"><button type="button" id="btnNext" class="btn go">Próximo destino ▶</button></div>
+    </div>
+  </section>
+
+  <section id="over" class="screen" hidden>
+    <div class="card">
+      <p class="eyebrow">Compra não aprovada</p>
+      <h2>Limite estourado!</h2>
+      <p>O cartão não passou desta vez. Respira, renegocia e tenta de novo.</p>
+      <div class="row">
+        <button type="button" id="btnRetry" class="btn go">Tentar de novo</button>
+        <button type="button" id="btnMapO" class="btn quiet">Roteiro</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="ending" class="screen" hidden>
+    <div class="card">
+      <p class="eyebrow">6 de 6 parcelas</p>
+      <h2>Viagem quitada!</h2>
+      <p id="endText"></p>
+      <dl class="tally" id="endTally"></dl>
+      <div class="row"><button type="button" id="btnEnd" class="btn go">Voltar ao roteiro</button></div>
+    </div>
+  </section>
+</div>
+<script src="js/art.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
