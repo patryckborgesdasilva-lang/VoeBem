@@ -5,7 +5,7 @@
   const PF = (window.PF = window.PF || {});
   const TS = (PF.TS = 16);
   const VH = 270;
-  const K = '#1e1830';
+  const K = '#09160d';
 
   function mk(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
   function rng(seed) {
@@ -40,7 +40,7 @@
     for (let Y = 0; Y < h; Y++) for (let X = 0; X < w; X++) {
       const i = (Y * w + X) * 4;
       if (src[i + 3]) continue;
-      if (on(X - 1, Y) || on(X + 1, Y) || on(X, Y - 1) || on(X, Y + 1)) { a[i] = 30; a[i + 1] = 24; a[i + 2] = 48; a[i + 3] = 255; }
+      if (on(X - 1, Y) || on(X + 1, Y) || on(X, Y - 1) || on(X, Y + 1)) { a[i] = 9; a[i + 1] = 22; a[i + 2] = 13; a[i + 3] = 255; }
     }
     x.putImageData(img, 0, 0);
   }
@@ -58,46 +58,117 @@
     else ctx.drawImage(s.c, x - 1, y - 1);
   };
 
-  /* ---------------- jogadores ---------------- */
-  PF.STYLES = ['Curto', 'Curto + barba', 'Longo', 'Rabo de cavalo', 'Boné', 'Boné + barba', 'Cacheado', 'Careca + barba'];
-  function playerFrame(o, f) {
+  /* ---------------- Patryck e Mari ---------------- */
+  const GOLD = '#ffd34d';
+  const MARI_LOOK = {
+    sp: { top: '#ff4fa3', dot: '#ffd34d', pt: '#7b4fd6', shoe: '#ffffff', acc: '#ffd34d', bag: '#ff650e' },
+    bc: { top: '#ffd34d', dot: '#ff650e', pt: '#19b5a5', shoe: '#ffffff', acc: '#19b5a5', bag: '#ff4fa3', short: 1 },
+    bar: { top: '#e9483f', dot: '#ffd34d', pt: '#2e2a5a', shoe: '#6b3a1e', acc: '#ffd34d', bag: '#3a6a34', coat: 1 },
+    ba: { top: '#19b5a5', dot: '#ffffff', pt: '#ff5a5f', shoe: '#ffd34d', acc: '#ff5a5f', bag: '#ffd34d', skirt: 1 },
+    foz: { top: '#ff8a3d', dot: '#fff07a', pt: '#3fae49', shoe: '#ffffff', acc: '#3fae49', bag: '#7b4fd6' },
+    py: { top: '#b892ee', dot: '#ffffff', pt: '#ffc93c', shoe: '#ff4fa3', acc: '#ff4fa3', bag: '#e9483f' },
+  };
+  function heroFrame(who, th, f) {
     return sprite(16, 24, (x, R) => {
-      const sk = o.skin, hr = o.hair, sh = o.shirt, pt = o.pants, shoe = '#2d2640', pk = o.pack;
-      const b = f === 'run1' ? 1 : 0;
+      const y = f === 'run1' ? 1 : 0, mari = who === 1, cold = th === 'bar';
+      const sk = mari ? '#a8714c' : '#e2ac84', skD = mari ? '#8a5838' : '#c48a62', hr = mari ? '#1c1412' : '#231813';
+      const M = MARI_LOOK[th] || MARI_LOOK.sp;
+      const top = mari ? M.top : '#2a2a31', topLo = shade(top, -28), pt = mari ? M.pt : '#35507e', shoe = mari ? M.shoe : '#f2f2f2';
+      const low = mari && (M.short || M.skirt) ? sk : null;
+      const longSleeve = cold;
       // pernas
-      if (f === 'idle') { R(5, 18, 3, 4, pt); R(9, 18, 3, 4, pt); R(4, 22, 4, 2, shoe); R(9, 22, 4, 2, shoe); }
-      else if (f === 'run0') { R(3, 18, 3, 3, pt); R(1, 20, 4, 2, shoe); R(10, 18, 3, 4, pt); R(10, 22, 4, 2, shoe); }
-      else if (f === 'run1') { R(6, 19, 4, 3, pt); R(6, 22, 5, 2, shoe); }
-      else { R(4, 18, 3, 2, pt); R(3, 20, 4, 2, shoe); R(9, 18, 3, 3, pt); R(10, 21, 4, 2, shoe); }
-      // mochila
-      R(1, 11 + b, 4, 6, pk); R(1, 11 + b, 4, 1, shade(pk, 35)); R(1, 16 + b, 4, 1, shade(pk, -35));
+      const L = (X, Y, W, H) => { for (let k = 0; k < H; k++) R(X, Y + k, W, 1, low && Y + k >= 20 ? low : pt); };
+      if (f === 'idle') { L(5, 18, 3, 4); L(9, 18, 3, 4); R(4, 22, 4, 2, shoe); R(9, 22, 4, 2, shoe); }
+      else if (f === 'run0') { L(3, 18, 3, 3); R(1, 20, 4, 2, shoe); L(10, 18, 3, 4); R(10, 22, 4, 2, shoe); }
+      else if (f === 'run1') { L(6, 19, 4, 3); R(6, 22, 5, 2, shoe); }
+      else { L(4, 18, 3, 2); R(3, 20, 4, 2, shoe); L(9, 18, 3, 3); R(10, 21, 4, 2, shoe); }
+      if (!mari) { R(4, 23, 4, 1, '#b9bcc8'); }
       // tronco
-      R(4, 10 + b, 9, 8, sh); R(4, 17 + b, 9, 1, shade(sh, -30));
+      R(4, 10 + y, 9, 8, top); R(4, 17 + y, 9, 1, topLo);
+      if (mari && M.skirt) { R(3, 17 + y, 11, 3, pt); R(3, 19 + y, 11, 1, shade(pt, -30)); }
+      if (mari && M.short) R(4, 17 + y, 9, 2, pt);
+      if (mari) {
+        [[6, 12], [10, 11], [5, 15], [9, 14], [11, 16]].forEach(([X, Y]) => R(X, Y + y, 1, 1, M.dot));
+        if (M.coat) { R(8, 11 + y, 1, 7, topLo); R(7, 12 + y, 1, 1, GOLD); R(7, 15 + y, 1, 1, GOLD); R(4, 10 + y, 9, 1, '#f3e2c8'); }
+        for (let k = 0; k < 7; k++) R(11 - k, 10 + k + y, 1, 1, '#2b2430');
+        R(3, 15 + y, 4, 3, M.bag); R(3, 15 + y, 4, 1, shade(M.bag, 40)); R(5, 16 + y, 1, 1, GOLD);
+      } else {
+        R(4, 10 + y, 9, 1, '#3d3d47');
+        if (cold) { R(4, 13 + y, 9, 1, '#3d3d47'); R(4, 15 + y, 9, 1, '#3d3d47'); R(5, 10 + y, 8, 2, '#ff650e'); R(6, 12 + y, 2, 3, '#ff650e'); R(6, 14 + y, 2, 1, '#c94a06'); }
+        else { R(7, 10 + y, 1, 1, GOLD); R(8, 11 + y, 3, 1, GOLD); R(11, 10 + y, 1, 1, GOLD); }
+      }
       // braço da frente
-      const arm = shade(sh, -20);
-      if (f === 'jump') { R(13, 8, 2, 4, arm); R(13, 6, 2, 2, sk); }
-      else if (f === 'run0') { R(11, 11, 4, 2, arm); R(14, 12, 2, 2, sk); }
-      else if (f === 'run1') { R(9, 13, 2, 3, arm); R(9, 16, 2, 2, sk); }
-      else { R(11, 11, 2, 5, arm); R(11, 16, 2, 2, sk); }
+      const arm = longSleeve ? topLo : sk, cap = mari && !longSleeve ? top : topLo;
+      if (f === 'jump') { R(13, 8, 2, 4, arm); R(13, 6, 2, 2, sk); R(12, 10, 2, 2, cap); }
+      else if (f === 'run0') { R(11, 11, 4, 2, arm); R(14, 12, 2, 2, sk); R(11, 11, 2, 2, cap); }
+      else if (f === 'run1') { R(9, 13, 2, 3, arm); R(9, 16, 2, 2, sk); R(9, 12, 2, 2, cap); }
+      else { R(11, 11, 2, 5, arm); R(11, 16, 2, 2, sk); R(11, 11, 2, 2, cap); }
       // cabeça
-      R(4, 2 + b, 10, 8, sk); R(5, 1 + b, 8, 1, sk);
-      R(8, 5 + b, 1, 2, K); R(12, 5 + b, 1, 2, K);
-      R(10, 8 + b, 2, 1, shade(sk, -60));
-      R(13, 7 + b, 1, 1, '#ff9aa2');
-      // cabelo
-      const st = o.style | 0;
-      const beard = st === 1 || st === 5 || st === 7;
-      if (beard) { R(7, 8 + b, 7, 2, hr); R(12, 7 + b, 2, 1, hr); R(10, 8 + b, 2, 1, shade(sk, -60)); }
-      if (st === 0 || st === 1) { R(4, 1 + b, 10, 3, hr); R(3, 2 + b, 2, 5, hr); R(5, 4 + b, 2, 1, hr); }
-      else if (st === 2) { R(4, 1 + b, 10, 3, hr); R(2, 2 + b, 3, 12, hr); R(5, 4 + b, 2, 3, hr); R(12, 3 + b, 2, 2, hr); }
-      else if (st === 3) { R(4, 1 + b, 10, 3, hr); R(3, 2 + b, 2, 4, hr); R(0, 4 + b, 3, 2, hr); R(0, 6 + b, 2, 5, hr); R(12, 3 + b, 2, 1, hr); }
-      else if (st === 4 || st === 5) { R(3, 3 + b, 2, 4, hr); R(5, 3 + b, 2, 1, hr); R(4, 0 + b, 10, 3, pk); R(4, 0 + b, 10, 1, shade(pk, 35)); R(11, 2 + b, 5, 1, shade(pk, -30)); }
-      else if (st === 6) { R(3, 0 + b, 12, 4, hr); R(2, 1 + b, 3, 7, hr); R(14, 1 + b, 1, 3, hr); R(5, 4 + b, 2, 2, hr); R(5, 0 + b, 2, 1, shade(hr, 30)); R(10, 1 + b, 2, 1, shade(hr, 30)); }
+      R(4, 2 + y, 10, 8, sk); R(5, 1 + y, 8, 1, sk); R(14, 6 + y, 1, 2, sk); R(6, 5 + y, 1, 2, skD);
+      if (mari) {
+        R(4, 0 + y, 9, 2, hr); R(3, 1 + y, 2, 5, hr); R(4, 2 + y, 4, 2, hr); R(5, 4 + y, 1, 2, hr); R(7, 0 + y, 3, 1, '#3d2e2a');
+        R(0, 1 + y, 3, 4, hr); R(1, 0 + y, 2, 1, hr); R(2, 2 + y, 1, 2, M.acc); R(0, 2 + y, 1, 1, '#3d2e2a');
+        R(6, 7 + y, 1, 1, GOLD);
+        R(8, 4 + y, 2, 1, hr); R(11, 4 + y, 2, 1, hr);
+        R(9, 5 + y, 1, 2, K); R(12, 5 + y, 1, 2, K); R(8, 5 + y, 1, 1, K); R(13, 5 + y, 1, 1, K);
+        R(13, 7 + y, 1, 1, '#d9846a'); R(10, 8 + y, 3, 1, '#8c3f3a');
+      } else {
+        const bd = '#2e1f18';
+        R(3, 1 + y, 11, 2, hr); R(4, 0 + y, 9, 1, hr); R(4, 2 + y, 7, 1, hr); R(3, 3 + y, 2, 3, hr); R(12, 0 + y, 1, 1, hr);
+        R(6, 0 + y, 2, 1, '#3f2c22'); R(9, 1 + y, 2, 1, '#3f2c22'); R(13, 2 + y, 1, 1, hr);
+        if (th !== 'sp') {
+          R(5, 4 + y, 9, 1, '#0b0b10'); R(8, 4 + y, 3, 2, '#0b0b10'); R(12, 4 + y, 2, 2, '#0b0b10'); R(9, 4 + y, 1, 1, '#5d7d9a'); R(12, 4 + y, 1, 1, '#5d7d9a');
+        } else { R(8, 4 + y, 2, 1, hr); R(11, 4 + y, 2, 1, hr); R(9, 5 + y, 1, 2, K); R(12, 5 + y, 1, 2, K); }
+        R(5, 6 + y, 2, 3, bd); R(5, 8 + y, 9, 2, bd); R(10, 7 + y, 4, 1, bd); R(10, 8 + y, 3, 1, '#ffffff'); R(7, 9 + y, 6, 1, bd);
+      }
     });
   }
-  PF.playerFrames = function (o) {
-    return { idle: playerFrame(o, 'idle'), run0: playerFrame(o, 'run0'), run1: playerFrame(o, 'run1'), jump: playerFrame(o, 'jump') };
+  const heroCache = {};
+  PF.heroFrames = function (who, th) {
+    const k = who + th;
+    if (heroCache[k]) return heroCache[k];
+    const g = (f) => heroFrame(who, th, f);
+    return (heroCache[k] = { idle: g('idle'), run0: g('run0'), run1: g('run1'), jump: g('jump') });
   };
+  PF.HEROES = [{ name: 'Patryck', color: '#9fe07a' }, { name: 'Mari', color: '#ffad4d' }];
+
+  /* ---------------- mascotes do canal ---------------- */
+  const DK = '#0c3a1c';
+  function dinherin(state) {
+    // state 0 = dormindo (check-in apagado), 1 e 2 = acordado fazendo "paz e amor"
+    return sprite(19, 23, (x, R) => {
+      const on = state > 0, g1 = on ? '#93c06c' : '#b3bcab', g2 = on ? '#6fa257' : '#939b8e', g3 = on ? '#3a6a34' : '#707a6c';
+      R(3, 1, 13, 15, g1); R(3, 1, 13, 1, g2); R(3, 15, 13, 1, g2); R(3, 1, 1, 15, g2); R(15, 1, 1, 15, g2);
+      R(4, 2, 1, 1, g3); R(14, 2, 1, 1, g3); R(4, 14, 1, 1, g3); R(14, 14, 1, 1, g3);
+      disc(R, 9, 12, 2, g3); R(9, 10, 1, 5, g1); R(8, 11, 2, 1, g1); R(9, 13, 2, 1, g1);
+      if (on) { R(3, 4, 13, 1, DK); R(4, 4, 5, 3, DK); R(10, 4, 5, 3, DK); R(5, 5, 1, 1, '#5d8f55'); R(11, 5, 1, 1, '#5d8f55'); R(7, 8, 5, 1, DK); R(6, 7, 1, 1, DK); R(12, 7, 1, 1, DK); }
+      else { R(5, 6, 3, 1, DK); R(11, 6, 3, 1, DK); R(8, 8, 3, 1, DK); }
+      R(1, 8, 2, 1, DK); R(0, 9, 1, 2, DK); R(1, 11, 2, 1, DK);
+      if (on) {
+        const w = state === 2 ? 1 : 0;
+        R(16, 8, 1, 1, DK); R(17, 4, 1, 5, DK); R(16, 3, 3, 2, DK); R(16 - w, 0, 1, 3, DK); R(18, 0, 1, 3, DK);
+      } else { R(16, 9, 1, 4, DK); R(16, 13, 2, 1, DK); }
+      R(6, 16, 1, 4, DK); R(5, 20, 3, 2, DK); R(12, 16, 1, 4, DK); R(12, 20, 3, 2, DK);
+    });
+  }
+  function donaCartao(f) {
+    return sprite(22, 30, (x, R) => {
+      const o = '#f9a12a', s = '#ea7a0c', jk = '#3b4e2a', jkH = '#4f6638', blk = '#0b1a10';
+      R(6, 0, 4, 3, blk); R(12, 0, 4, 3, blk); R(10, 1, 2, 2, blk); R(7, 1, 1, 1, '#24342a'); R(14, 1, 1, 1, '#24342a');
+      R(5, 3, 12, 17, o); R(16, 3, 1, 17, '#e08a1a'); R(6, 5, 10, 2, s);
+      R(4, 8, 14, 1, blk); R(5, 8, 5, 3, blk); R(12, 8, 5, 3, blk); R(10, 9, 2, 1, blk); R(6, 9, 1, 1, '#33473a'); R(13, 9, 1, 1, '#33473a');
+      R(9, 13, 4, 1, blk); R(8, 12, 1, 1, blk); R(13, 12, 1, 1, blk); R(7, 12, 1, 1, '#ff8a6a');
+      R(4, 14, 3, 8, jk); R(15, 14, 3, 8, jk); R(4, 14, 1, 8, jkH); R(6, 14, 1, 3, jkH); R(15, 14, 1, 3, jkH);
+      R(8, 16, 2, 3, '#4a4a3a'); R(12, 18, 3, 1, blk); R(12, 19, 3, 1, blk);
+      R(8, 20, 1, 6, blk); R(13, 20, 1, 6, blk); R(9, 22, 1, 1, blk); R(12, 22, 1, 1, blk);
+      R(6, 26, 4, 2, blk); R(12, 26, 4, 2, blk); R(6, 28, 1, 1, blk); R(15, 28, 1, 1, blk);
+      // braço levantado filmando
+      R(18, 14, 1, 3, blk); R(19, 9, 1, 5, blk); R(17, 3, 5, 7, blk); R(18, 4, 3, 5, '#ffb08a'); R(18, 4, 1, 1, '#ffd2bd');
+      if (f) { R(20, 4, 1, 1, '#ff2a2a'); }
+      // café
+      R(1, 16, 3, 1, blk); R(1, 17, 3, 4, o); R(1, 18, 3, 1, s); R(3, 18, 1, 3, blk);
+    });
+  }
 
   /* ---------------- inimigos (olham para a esquerda) ---------------- */
   function boleto(head, f) {
@@ -224,10 +295,11 @@
     });
   }
   function card() {
-    return sprite(16, 11, (x, R) => {
-      R(0, 0, 16, 11, '#22223b'); R(0, 0, 16, 1, '#3d3d63');
-      R(0, 7, 16, 2, '#ffc93c'); R(2, 2, 4, 3, '#ffc93c'); R(3, 3, 2, 1, '#b86e0c');
-      R(8, 3, 2, 1, '#cfd6ee'); R(11, 3, 3, 1, '#cfd6ee');
+    return sprite(12, 14, (x, R) => {
+      const blk = '#0b1a10';
+      R(2, 0, 3, 2, blk); R(7, 0, 3, 2, blk); R(5, 1, 2, 1, blk);
+      R(1, 2, 10, 12, '#f9a12a'); R(10, 2, 1, 12, '#e08a1a'); R(2, 4, 8, 1, '#ea7a0c');
+      R(1, 6, 10, 1, blk); R(2, 6, 3, 2, blk); R(7, 6, 3, 2, blk); R(5, 10, 2, 1, blk); R(4, 9, 1, 1, blk); R(7, 9, 1, 1, blk);
     });
   }
   const FOOD = {
@@ -247,24 +319,6 @@
       R(0, 3, 2, 2, d); R(14, 3, 2, 2, d); R(0, 14, 2, 2, d); R(14, 14, 2, 2, d);
       if (!used) { disc(R, 8, 9, 3, '#ffc93c'); R(7, 7, 2, 3, '#b86e0c'); R(7, 11, 2, 1, '#b86e0c'); }
       else { R(6, 8, 4, 1, d); }
-    });
-  }
-  function check(on) {
-    return sprite(16, 32, (x, R) => {
-      R(7, 9, 2, 22, '#6b5a4a'); R(5, 30, 6, 2, '#4a3d33');
-      R(0, 0, 16, 10, on ? '#ffc93c' : '#9aa0b4'); R(0, 0, 16, 1, on ? '#fff3b0' : '#c3c8d8'); R(0, 9, 16, 1, on ? '#c98a12' : '#6e7388');
-      if (on) { const k = '#1b2440'; R(3, 5, 2, 2, k); R(5, 6, 2, 2, k); R(7, 4, 2, 2, k); R(9, 2, 2, 2, k); R(11, 1, 1, 1, k); }
-      else { const k = '#565b70'; R(3, 4, 10, 2, k); R(7, 2, 2, 6, k); }
-    });
-  }
-  function goal() {
-    return sprite(24, 36, (x, R) => {
-      const m = '#3a3f52';
-      line(R, 12, 14, 3, 35, m, 2); line(R, 12, 14, 20, 35, m, 2); R(11, 14, 2, 21, m);
-      R(10, 11, 4, 3, '#5a6078');
-      R(5, 2, 15, 10, '#2b2d42'); R(5, 2, 15, 1, '#565a78');
-      R(0, 4, 5, 6, '#5d6885'); R(1, 5, 3, 4, '#9fd3ff'); R(1, 5, 1, 1, '#fff');
-      R(14, 0, 4, 2, '#2b2d42');
     });
   }
   function chute() {
@@ -295,7 +349,7 @@
       coin: [coin(10), coin(6), coin(2), coin(6)],
       stamp: stamp(), card: card(), food,
       box: mala(false), boxUsed: mala(true),
-      check: [check(false), check(true)], goal: goal(), chute: chute(),
+      check: [dinherin(0), dinherin(1), dinherin(2)], goal: [donaCartao(0), donaCartao(1)], chute: chute(),
     };
     return SPR;
   };

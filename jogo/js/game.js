@@ -13,10 +13,6 @@
   const world = document.createElement('canvas'), wx = world.getContext('2d');
   let VW = 480, scale = 2;
 
-  const SKINS = ['#ffd9b8', '#f1c27d', '#d9a066', '#b07848', '#7a4a2a'];
-  const HAIRS = ['#2b1d16', '#5a3418', '#a0622d', '#e3b04b', '#c9412e', '#8d8d99', '#e86fb0'];
-  const SHIRTS = ['#2e86de', '#ff5a5f', '#19b5a5', '#ffc93c', '#8e5bd6', '#f6f8fc', '#3a3f52', '#ff8fab'];
-  const PCOL = ['#ffc93c', '#ff9fbd'];
 
   const ENEMY = {
     boleto: { ai: 'walk', w: 12, h: 15, speed: 26 },
@@ -34,25 +30,18 @@
   };
 
   /* ---------------- progresso salvo ---------------- */
-  const SAVE_KEY = 'parceleiefui.v1';
-  const save = {
-    mode: 2, muted: false, prog: [],
-    p: [{ name: 'Patryck', skin: 1, style: 1, hair: 0, shirt: 0 }, { name: 'Mari', skin: 0, style: 2, hair: 1, shirt: 1 }],
-  };
+  const SAVE_KEY = 'parceleiefui.v2';
+  const save = { mode: 2, solo: 0, muted: false, prog: [] };
   function loadSave() {
     try {
-      const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-      if (s && Array.isArray(s.p) && s.p.length === 2) { save.mode = s.mode === 1 ? 1 : 2; save.muted = !!s.muted; save.prog = Array.isArray(s.prog) ? s.prog : []; save.p = s.p; }
+      const s = JSON.parse(localStorage.getItem(SAVE_KEY) || localStorage.getItem('parceleiefui.v1') || 'null');
+      if (s) { save.mode = s.mode === 1 ? 1 : 2; save.solo = s.solo === 1 ? 1 : 0; save.muted = !!s.muted; save.prog = Array.isArray(s.prog) ? s.prog : []; }
     } catch (e) { /* sem armazenamento: joga sem salvar */ }
   }
   function store() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) { /* ignora */ } }
   function prog(i) { return save.prog[i] || (save.prog[i] = { done: false, best: 0, stamps: [false, false, false] }); }
   function unlocked(i) { return i === 0 || prog(i - 1).done; }
-  function look(i) {
-    const c = save.p[i];
-    return { skin: SKINS[c.skin % SKINS.length], hair: HAIRS[c.hair % HAIRS.length], style: c.style % PF.STYLES.length, shirt: SHIRTS[c.shirt % SHIRTS.length], pants: i ? '#4a3f6b' : '#2f3b63', pack: SHIRTS[(c.shirt + 3) % SHIRTS.length] };
-  }
-  function pname(i) { return (save.p[i].name || '').trim() || ['Patryck', 'Mari'][i]; }
+  function pname(c) { return PF.HEROES[c].name; }
 
   /* ---------------- estado ---------------- */
   const G = { state: 'title', mode: 2, L: null, li: 0, sel: 0, players: [], cam: 0, t: 0, coins: 0, kills: 0, lives: 5, time: 0, got: [false, false, false], check: null, parts: [], pops: [], picks: [], enemies: [], pads: [], bot: null, wonT: 0, bg: null, ts: null, static: null, menuBg: 'sp' };
@@ -167,36 +156,48 @@
   }
 
   /* título: editor dos passageiros */
-  function drawPreview(i) {
-    const c = document.querySelector('.pax[data-p="' + i + '"] canvas'), x = c.getContext('2d'), s = PF.playerFrames(look(i)).idle;
-    x.imageSmoothingEnabled = false; x.clearRect(0, 0, c.width, c.height);
-    x.drawImage(s.c, 0, 0, s.c.width, s.c.height, 0, 0, c.width, c.height);
+  function drawPreview(c) {
+    const cv2 = document.querySelector('.pax[data-c="' + c + '"] canvas'), x = cv2.getContext('2d'), s = PF.heroFrames(c, 'py').idle;
+    x.imageSmoothingEnabled = false; x.clearRect(0, 0, cv2.width, cv2.height);
+    x.drawImage(s.c, 0, 0, s.c.width, s.c.height, 0, 0, cv2.width, cv2.height);
   }
+  function drawMascots() {
+    const S = PF.sprites();
+    document.querySelectorAll('canvas[data-mascot]').forEach((c) => {
+      const s = c.dataset.mascot === 'din' ? S.check[1] : S.goal[0], x = c.getContext('2d');
+      x.imageSmoothingEnabled = false; x.clearRect(0, 0, c.width, c.height);
+      const k = Math.floor(Math.min(c.width / s.c.width, c.height / s.c.height));
+      x.drawImage(s.c, Math.round((c.width - s.c.width * k) / 2), c.height - s.c.height * k, s.c.width * k, s.c.height * k);
+    });
+  }
+  const KEYS2 = ['<kbd>A</kbd> <kbd>D</kbd> andar · <kbd>W</kbd> pular', '<kbd>←</kbd> <kbd>→</kbd> andar · <kbd>↑</kbd> pular'];
+  const KEYS1 = '<kbd>A</kbd> <kbd>D</kbd> ou <kbd>←</kbd> <kbd>→</kbd> andar · <kbd>W</kbd> <kbd>↑</kbd> <kbd>Espaço</kbd> pular';
+  const BIO = ['Camisa preta, barba e óculos escuros quando tem sol', 'Coque, brinco dourado e um look colorido em cada destino'];
   function buildTitle() {
-    const keysHelp = ['<kbd>A</kbd> <kbd>D</kbd> andar · <kbd>W</kbd> pular', '<kbd>←</kbd> <kbd>→</kbd> andar · <kbd>↑</kbd> pular'];
-    $('paxes').innerHTML = [0, 1].map((i) =>
-      '<div class="pax" data-p="' + i + '"><canvas width="72" height="104" aria-hidden="true"></canvas><div>' +
-      '<label for="name' + i + '">Passageiro ' + (i + 1) + '</label>' +
-      '<input id="name' + i + '" maxlength="10" placeholder="Nome" autocomplete="off" spellcheck="false">' +
-      '<div class="cyc"><button type="button" data-k="skin">Pele</button><button type="button" data-k="style">Cabelo</button><button type="button" data-k="hair">Cor</button><button type="button" data-k="shirt">Roupa</button></div>' +
-      '<p class="keys">' + keysHelp[i] + '</p></div></div>').join('');
-    [0, 1].forEach((i) => {
-      const inp = $('name' + i);
-      inp.value = save.p[i].name || '';
-      inp.addEventListener('input', () => { save.p[i].name = inp.value.slice(0, 10); store(); });
-      drawPreview(i);
-    });
-    $('paxes').addEventListener('click', (e) => {
-      const b = e.target.closest('button[data-k]'); if (!b) return;
-      const i = +b.closest('.pax').dataset.p, k = b.dataset.k, n = { skin: SKINS.length, style: PF.STYLES.length, hair: HAIRS.length, shirt: SHIRTS.length }[k];
-      save.p[i][k] = ((save.p[i][k] | 0) + 1) % n; store(); drawPreview(i); PF.audio.sfx('select');
-    });
-    const setMode = (m) => {
-      G.mode = save.mode = m; store();
+    $('paxes').innerHTML = [0, 1].map((c) =>
+      '<button type="button" class="pax" data-c="' + c + '"><canvas width="64" height="96" aria-hidden="true"></canvas><span class="pax-txt">' +
+      '<span class="pax-lab">Passageiro ' + (c + 1) + '</span><span class="pax-name">' + PF.HEROES[c].name + '</span>' +
+      '<span class="pax-bio">' + BIO[c] + '</span><span class="keys"></span></span></button>').join('');
+    [0, 1].forEach(drawPreview);
+    drawMascots();
+    const refresh = () => {
+      const m = save.mode;
       $('mode1').setAttribute('aria-pressed', String(m === 1)); $('mode2').setAttribute('aria-pressed', String(m === 2));
-      document.querySelector('.pax[data-p="1"]').classList.toggle('off', m === 1);
-      document.querySelector('.pax[data-p="0"] .keys').innerHTML = m === 1 ? '<kbd>A</kbd> <kbd>D</kbd> ou <kbd>←</kbd> <kbd>→</kbd> andar · <kbd>W</kbd> <kbd>↑</kbd> <kbd>Espaço</kbd> pular' : keysHelp[0];
+      document.querySelectorAll('.pax').forEach((el) => {
+        const c = +el.dataset.c, playing = m === 2 || save.solo === c;
+        el.classList.toggle('off', !playing);
+        el.setAttribute('aria-pressed', String(playing));
+        el.disabled = m === 2;
+        el.querySelector('.pax-lab').textContent = m === 2 ? 'Passageiro ' + (c + 1) : playing ? 'Vai jogar' : 'Toque pra escolher';
+        el.querySelector('.keys').innerHTML = m === 2 ? KEYS2[c] : playing ? KEYS1 : '';
+      });
+      $('modeHint').textContent = m === 2 ? 'Os dois jogam juntos na mesma tela.' : 'Escolha quem vai viajar.';
     };
+    $('paxes').addEventListener('click', (e) => {
+      const b = e.target.closest('.pax'); if (!b || save.mode !== 1) return;
+      save.solo = +b.dataset.c; store(); refresh(); PF.audio.sfx('select');
+    });
+    const setMode = (m) => { G.mode = save.mode = m; store(); refresh(); };
     $('mode1').onclick = () => setMode(1); $('mode2').onclick = () => setMode(2);
     setMode(save.mode);
     $('btnStart').onclick = () => { PF.audio.sfx('select'); goMap(); };
@@ -282,8 +283,8 @@
     G.state = 'ending'; G.L = null; setHud(false);
     let total = 0, st = 0;
     for (let i = 0; i < PF.LEVEL_COUNT; i++) { total += prog(i).best; st += prog(i).stamps.filter(Boolean).length; }
-    const who = G.mode === 2 ? pname(0) + ' e ' + pname(1) : pname(0);
-    $('endText').textContent = who + ' rodaram de São Paulo ao Paraguai, pagaram todas as parcelas e ainda voltaram com vídeo pra postar. ' + (st === 18 ? 'Passaporte completo, todos os carimbos!' : 'Ainda faltam carimbos no passaporte: dá pra voltar e buscar.');
+    const who = G.mode === 2 ? 'Patryck e Mari' : pname(save.solo);
+    $('endText').textContent = who + (G.mode === 2 ? ' rodaram' : ' rodou') + ' de São Paulo ao Paraguai, pagaram todas as parcelas e ainda voltaram com vídeo pra postar. ' + (st === 18 ? 'Passaporte completo, todos os carimbos!' : 'Ainda faltam carimbos no passaporte: dá pra voltar e buscar.');
     $('endTally').innerHTML = '<div><dt>Destinos</dt><dd>6 de 6</dd></div><div><dt>Carimbos</dt><dd>' + st + ' de 18</dd></div><div class="sum"><dt>Inscritos no canal</dt><dd>' + fmt(total) + '</dd></div>';
     screen('ending'); PF.audio.music('menu');
   }
@@ -296,8 +297,8 @@
   }
 
   /* ---------------- fase ---------------- */
-  function newPlayer(i) {
-    return { i, x: 0, y: 0, w: 10, h: 22, vx: 0, vy: 0, face: 1, onGround: false, gt: 0, coy: 0, jbuf: 0, pj: false, hp: 3, inv: 0, star: 0, stun: 0, dead: false, deadT: 0, out: false, chute: false, mover: null, anim: 0, pb: 0, wall: false, frames: PF.playerFrames(look(i)), name: pname(i), color: PCOL[i] };
+  function newPlayer(i, c) {
+    return { i, x: 0, y: 0, w: 10, h: 22, vx: 0, vy: 0, face: 1, onGround: false, gt: 0, coy: 0, jbuf: 0, pj: false, hp: 3, inv: 0, star: 0, stun: 0, dead: false, deadT: 0, out: false, chute: false, mover: null, anim: 0, pb: 0, wall: false, c, frames: PF.heroFrames(c, G.L.theme.id), name: pname(c), color: PF.HEROES[c].color };
   }
   function mkEnemy(d) {
     const def = ENEMY[d.type], fly = def.ai === 'fly';
@@ -329,12 +330,12 @@
     G.li = i; G.L = PF.buildLevel(i); G.bg = PF.background(G.L.theme.id); buildStatic();
     G.L.movers.forEach((m) => { m.x = m.x0; m.y = m.y0; m.py = m.y0; m.dx = m.dy = 0; m.t = 0; });
     G.mode = save.mode;
-    G.players = []; for (let p = 0; p < G.mode; p++) G.players.push(newPlayer(p));
+    G.players = G.mode === 2 ? [newPlayer(0, 0), newPlayer(1, 1)] : [newPlayer(0, save.solo)];
     G.coins = 0; G.kills = 0; G.lives = 5; G.time = 0; G.wonT = 0; G.got = [false, false, false];
     G.parts = []; G.pops = []; G.picks = [];
     G.enemies = G.L.enemies.map(mkEnemy);
     G.check = { x: 44, y: (HT - 3) * TS };
-    G.players.forEach((p, k) => { p.x = G.check.x - 5 + k * 16; p.y = G.check.y - p.h; });
+    G.players.forEach((p, k) => { p.x = G.check.x - 5 + k * 24; p.y = G.check.y - p.h; });
     snapCam();
     for (const k in keys) keys[k] = false;
     G.state = 'play'; acc = 0;
@@ -655,9 +656,8 @@
     const owned = prog(G.li).stamps;
     for (const s of L.stamps) { if (s.got) continue; wx.globalAlpha = owned[s.idx] ? 0.45 : 1; PF.spr(wx, S.stamp, s.x - 7 - cam, s.y - 7 + OY + Math.sin(t * 3 + s.idx) * 2); wx.globalAlpha = 1; }
     for (const k of G.picks) { if (k.got) continue; const s = k.kind === 'card' ? S.card : S.food[th.food]; PF.spr(wx, s, k.x - s.w / 2 - cam, k.y - s.h / 2 + OY + (k.y <= k.ty ? Math.sin(t * 4) * 1.5 : 0)); }
-    for (const q of L.checks) PF.spr(wx, S.check[q.on ? 1 : 0], q.x - 8 - cam, q.y - 32 + OY);
-    PF.spr(wx, S.goal, L.goal.x - 12 - cam, L.goal.y - 36 + OY);
-    if (Math.floor(t * 2) % 2) { wx.fillStyle = '#ff3b3b'; wx.fillRect(L.goal.x + 3 - cam, L.goal.y - 30 + OY, 2, 2); }
+    for (const q of L.checks) { const s = S.check[q.on ? 1 + (Math.floor(t * 3) % 2) : 0]; PF.spr(wx, s, q.x - (s.w >> 1) - cam, q.y - s.h + OY); }
+    { const s = S.goal[Math.floor(t * 2) % 2]; PF.spr(wx, s, L.goal.x - (s.w >> 1) - cam, L.goal.y - s.h + OY, true); }
     for (const e of G.enemies) {
       if (e.gone || !e.active) continue;
       const s = S.enemy[e.type][Math.floor(e.t * 7) % 2], X = Math.round(e.x + (e.w - s.w) / 2 - cam), Y = Math.round(e.y + e.h - s.h + OY);
@@ -692,7 +692,8 @@
   function overlay() {
     const cam = Math.round(G.cam), L = G.L;
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
-    for (const p of G.players) if (alive(p)) label(p.name, p.x + 5 - cam, p.y - 5 + OY - (p.chute ? 16 : 0), 7, p.color);
+    const lp = G.players.filter(alive), close = lp.length === 2 && Math.abs(lp[0].x - lp[1].x) < 36 && Math.abs(lp[0].y - lp[1].y) < 24;
+    lp.forEach((p, k) => label(p.name, p.x + 5 - cam, p.y - 5 + OY - (p.chute ? 16 : 0) - (close && k === 1 ? 9 : 0), 7, p.color));
     const gx = L.goal.x - cam;
     if (gx > -40 && gx < VW + 40 && G.state !== 'won') label('GRAVE O VÍDEO!', gx, L.goal.y - 44 + OY + Math.sin(G.t * 4) * 2, 8, '#ffffff');
     for (const q of G.pops) label(q.text, q.x - cam, q.y + OY, 7.5, q.col, clamp((1.1 - q.t) * 3, 0, 1));
