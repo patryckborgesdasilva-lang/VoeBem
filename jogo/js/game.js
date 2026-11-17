@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const PF = window.PF, TS = PF.TS, HT = 17, VH = 270, LH = HT * TS, OY = VH - LH;
-  const T = { G: 1, B: 2, P: 3, S: 4, QC: 5, QK: 6, QF: 7, QU: 8, ICE: 9 };
+  const T = { G: 1, B: 2, P: 3, S: 4, QC: 5, QK: 6, QF: 7, QU: 8, ICE: 9, GATE: 10 };
   const GRAV = 1350, JUMP = 400, WALK = 130, STEP = 1 / 60;
   const FONT = "'Press Start 2P','Courier New',monospace";
   const $ = (id) => document.getElementById(id);
@@ -382,7 +382,7 @@
     if (ty < 0 || ty >= HT) return 0;
     return L.tiles[ty * L.W + tx];
   }
-  const isSolid = (t) => t === T.G || t === T.B || t === T.ICE || (t >= T.QC && t <= T.QU);
+  const isSolid = (t) => t === T.G || t === T.B || t === T.ICE || t === T.GATE || (t >= T.QC && t <= T.QU);
   function moveX(e, dx) {
     e.wall = false;
     if (!dx) return;
@@ -513,7 +513,7 @@
     const [a, b] = G.players;
     if (!alive(a) || !alive(b)) return;
     const hop = (u, d) => {
-      if (u.vy > 60 && u.pb <= d.y + 6 && u.x + u.w > d.x + 1 && u.x < d.x + d.w - 1 && u.y + u.h >= d.y && u.y + u.h < d.y + 12) {
+      if (u.vy > 40 && u.pb <= d.y + 8 && u.x + u.w > d.x - 4 && u.x < d.x + d.w + 4 && u.y + u.h >= d.y - 1 && u.y + u.h < d.y + 14) {
         const held = getInput(u.i).j;
         u.y = d.y - u.h; u.vy = held ? -480 : -250; u.onGround = false;
         sfx('boing'); if (held) pop('PEZINHO!', u.x + 5, u.y - 6, u.color);
@@ -599,6 +599,51 @@
     if (e.y > LH + 40) e.gone = true;
   }
 
+  /* ---------------- trechos cooperativos ---------------- */
+  function onSwitch(p, q) { return alive(p) && p.onGround && p.x + p.w > q.x + 2 && p.x < q.x + q.w - 2 && Math.abs(p.y + p.h - q.y) < 3; }
+  function coopStep(dt) {
+    const L = G.L;
+    G.coop = G.players.filter((p) => !p.out).length >= 2;
+    for (const q of L.switches) {
+      const was = q.pressed;
+      q.pressed = G.players.some((p) => onSwitch(p, q));
+      if (q.pressed && !was) sfx('box');
+    }
+    for (const g of L.gates) {
+      if (L.switches.some((q) => q.id === g.id && q.pressed)) g.timer = G.coop ? 0.15 : 3.5;
+      else g.timer -= dt;
+      const x0 = g.tx * TS, y0 = g.ty0 * TS, y1 = (g.ty1 + 1) * TS;
+      const inside = G.players.some((p) => alive(p) && p.x + p.w > x0 && p.x < x0 + TS && p.y + p.h > y0 && p.y < y1);
+      const want = g.timer > 0 || (inside && g.open > 0.2) ? 1 : 0, before = g.open;
+      g.open = clamp(g.open + (want ? 5 : -4) * dt, 0, 1);
+      if (before === 0 && g.open > 0) sfx('select');
+      const solid = g.open < 0.5;
+      for (let r = g.ty0; r <= g.ty1; r++) L.tiles[r * L.W + g.tx] = solid ? T.GATE : 0;
+    }
+  }
+  const LINK = { a: '#ff650e', b: '#93c06c', c: '#ffd34d' };
+  function drawCoop(cam, t) {
+    const L = G.L;
+    for (const g of L.gates) {
+      const X = g.tx * TS - cam; if (X < -TS || X > VW) continue;
+      const top = g.ty0 * TS + OY, bot = (g.ty1 + 1) * TS + OY, hgt = bot - top, vis = Math.round(hgt * (1 - g.open)), col = LINK[g.id] || '#ff650e';
+      wx.fillStyle = '#3a3f52'; wx.fillRect(X + 1, top - 4, 14, 4); wx.fillRect(X + 1, bot - 3, 14, 3);
+      for (let y = bot - vis; y < bot - 3; y += 4) { wx.fillStyle = ((y - top) >> 2) % 2 ? '#ffffff' : col; wx.fillRect(X + 4, y, 8, 4); }
+      wx.fillStyle = '#09160d'; wx.fillRect(X + 3, bot - vis, 1, vis - 3); wx.fillRect(X + 12, bot - vis, 1, vis - 3);
+      if (g.open < 0.5 && Math.floor(t * 2) % 2) { wx.fillStyle = '#ff2a2a'; wx.fillRect(X + 6, top - 3, 4, 2); }
+      else if (g.open >= 0.5) { wx.fillStyle = '#4cff6a'; wx.fillRect(X + 6, top - 3, 4, 2); }
+    }
+    for (const q of L.switches) {
+      const X = q.x - cam; if (X < -TS || X > VW) continue;
+      const Y = q.y + OY, col = LINK[q.id] || '#ff650e', d = q.pressed ? 2 : 0;
+      wx.fillStyle = '#09160d'; wx.fillRect(X + 1, Y - 3, 14, 3);
+      wx.fillStyle = '#5a6078'; wx.fillRect(X + 2, Y - 2, 12, 2);
+      wx.fillStyle = '#09160d'; wx.fillRect(X + 3, Y - 7 + d, 10, 5 - d);
+      wx.fillStyle = q.pressed ? '#4cff6a' : col; wx.fillRect(X + 4, Y - 6 + d, 8, 3 - d);
+      wx.fillStyle = 'rgba(255,255,255,0.7)'; wx.fillRect(X + 5, Y - 6 + d, 2, 1);
+    }
+  }
+
   /* ---------------- câmera e passo de simulação ---------------- */
   function camTarget() {
     let s = 0, n = 0, f = 0;
@@ -611,9 +656,19 @@
     const L = G.L;
     G.t += dt;
     if (G.state === 'play') G.time += dt; else G.wonT += dt;
+    coopStep(dt);
     for (const m of L.movers) {
       m.t += dt;
-      const k = 0.5 - 0.5 * Math.cos(m.t * m.speed), nx = m.axis === 'x' ? m.x0 + m.range * k : m.x0, ny = m.axis === 'y' ? m.y0 - m.range * k : m.y0;
+      let nx, ny;
+      if (m.kind === 'lift') {
+        // no modo cooperativo o elevador sobe com o botão; sozinho, sobe quando alguém fica em cima
+        const up = G.coop ? L.switches.some((q) => q.id === m.id && q.pressed) : G.players.some((q) => q.mover === m && alive(q));
+        m.k = clamp(m.k + (up ? 0.9 : -0.7) * dt, 0, 1);
+        nx = m.x0; ny = m.y0 - m.range * m.k;
+      } else {
+        const k = 0.5 - 0.5 * Math.cos(m.t * m.speed);
+        nx = m.axis === 'x' ? m.x0 + m.range * k : m.x0; ny = m.axis === 'y' ? m.y0 - m.range * k : m.y0;
+      }
       m.dx = nx - m.x; m.dy = ny - m.y; m.py = m.y; m.x = nx; m.y = ny;
     }
     for (const p of G.players) updatePlayer(p, dt);
@@ -643,6 +698,14 @@
     for (const m of L.movers) {
       const X = Math.round(m.x - cam), Y = Math.round(m.y + OY);
       if (X > VW || X + m.w < 0) continue;
+      if (m.kind === 'lift') {
+        const base = Math.round(m.y0 + OY + 4), col = LINK[m.id] || '#93c06c';
+        wx.fillStyle = '#3a3f52'; wx.fillRect(X + 2, Y + 6, 2, base - Y - 6); wx.fillRect(X + m.w - 4, Y + 6, 2, base - Y - 6);
+        wx.fillStyle = '#09160d'; wx.fillRect(X, Y, m.w, 7);
+        for (let k = 0; k < m.w; k += 4) { wx.fillStyle = (k >> 2) % 2 ? '#09160d' : col; wx.fillRect(X + k, Y + 1, 4, 3); }
+        wx.fillStyle = '#ffd34d'; wx.fillRect(X, Y + 4, m.w, 2);
+        continue;
+      }
       if (th.mover === 'cable') { wx.fillStyle = 'rgba(27,36,64,0.5)'; wx.fillRect(X + 3, 0, 1, Y); wx.fillRect(X + m.w - 4, 0, 1, Y); }
       if (th.mover === 'log') {
         wx.fillStyle = '#6e4a2c'; wx.fillRect(X, Y, m.w, 8); wx.fillStyle = '#9a6b42'; wx.fillRect(X, Y, m.w, 3);
@@ -655,6 +718,7 @@
       }
       wx.fillStyle = 'rgba(30,24,48,0.9)'; wx.fillRect(X, Y + (th.mover === 'log' ? 8 : 7), m.w, 1);
     }
+    drawCoop(cam, t);
     for (const b of L.boxes) {
       const X = b.tx * TS - cam; if (X > VW || X < -TS) continue;
       PF.spr(wx, b.used ? S.boxUsed : S.box, X, b.ty * TS + OY - (b.bump > 0 ? Math.sin((b.bump / 0.2) * Math.PI) * 5 : 0));
@@ -701,6 +765,11 @@
     ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'miter';
     const lp = G.players.filter(alive), close = lp.length === 2 && Math.abs(lp[0].x - lp[1].x) < 36 && Math.abs(lp[0].y - lp[1].y) < 24;
     lp.forEach((p, k) => label(p.name.toUpperCase(), p.x + 5 - cam, p.y - 5 + OY - (p.chute ? 16 : 0) - (close && k === 1 ? 8 : 0), 5, p.color));
+    if (G.coop && G.state === 'play') for (const h of L.hints) {
+      const hx = h.x - cam;
+      if (hx < -60 || hx > VW + 60 || !G.players.some((p) => alive(p) && Math.abs(p.x - h.x) < 140)) continue;
+      if (Math.floor(G.t * 2.5) % 3 < 2) label(h.text, hx, h.y + OY, 5, '#ffd34d');
+    }
     const gx = L.goal.x - cam;
     if (gx > -40 && gx < VW + 40 && G.state !== 'won') label('GRAVE O VÍDEO!', gx, L.goal.y - 42 + OY + (Math.floor(G.t * 3) % 2) * 2, 6, '#ffffff');
     for (const q of G.pops) label(q.text.toUpperCase(), q.x - cam, q.y + OY, 5, q.col, clamp((1.1 - q.t) * 3, 0, 1));

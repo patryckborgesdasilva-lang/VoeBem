@@ -15,7 +15,12 @@
      ['k', dx]                   check-in (ponto de retorno)
      ['t', dx, up]               carimbo de passaporte (3 por fase)
      ['d', tipo, dx]             decoração
-     ['g', dx]                   tripé da câmera (fim da fase)
+     ['g', dx]                   Dona Cartão (fim da fase)
+     ['S', dx, id]               botão no chão (ligado a cancela/elevador de mesmo id)
+     ['D', dx, h, id]            cancela de h tiles que abre com o botão
+     ['L', dx, w, sobe, id]      elevador de w tiles que sobe 'sobe' tiles com o botão
+     ['H', dx, up, texto]        dica que aparece no modo de 2 jogadores
+   Trechos cooperativos prontos: b.coopGate(id) e b.coopLift(id).
    Limites do pulo: sobe até 3 tiles, atravessa até 4 tiles de buraco. */
 (function () {
   'use strict';
@@ -27,6 +32,7 @@
     (b) => b
       .flat(16, [['d', 'sign', 2], ['d', 'lamp', 7], ['c', 10, 0, 4]])
       .flat(12, [['q', 4, 3, 'c'], ['e', 'boleto', 9], ['d', 'tree', 1]])
+      .coopGate('a')
       .up(1).flat(5, [['c', 1, 0, 3]])
       .up(1).flat(6, [['e', 'boleto', 4], ['d', 'lamp', 2]])
       .up(-2).flat(10, [['p', 3, 2, 4], ['c', 3, 3, 4], ['d', 'tree', 8]])
@@ -37,6 +43,7 @@
       .up(2).flat(7, [['e', 'pombo', 3, 3], ['c', 2, 0, 3]])
       .up(1).flat(4, [['t', 2, 2]])
       .up(-3).flat(12, [['k', 2], ['d', 'tree', 6], ['e', 'boleto', 9]])
+      .coopLift('b')
       .gap(3)
       .flat(4, [['c', 1, 0, 2]])
       .gap(3)
@@ -52,6 +59,7 @@
     (b) => b
       .flat(14, [['d', 'sign', 2], ['d', 'palm', 6], ['c', 9, 0, 4], ['d', 'umbrella', 11]])
       .flat(10, [['e', 'siri', 6], ['q', 3, 3, 'c'], ['q', 4, 3, 'c']])
+      .coopGate('a')
       .gap(3, [['a', 0, 1, 3]])
       .flat(9, [['e', 'ourico', 5], ['c', 4, 2, 3], ['d', 'palm', 1]])
       .up(1).flat(6, [['e', 'siri', 3]])
@@ -61,6 +69,7 @@
       .up(-2).flat(8, [['e', 'siri', 3], ['e', 'siri', 6]])
       .gap(2).flat(3, [['c', 1, 0, 1]]).gap(2).flat(3, [['c', 1, 0, 1]]).gap(3)
       .flat(12, [['k', 2], ['d', 'palm', 5], ['p', 7, 2, 3], ['t', 8, 3]])
+      .coopLift('b')
       .up(2).flat(6, [['e', 'ourico', 3]])
       .gap(8, [['m', 1, 0, 3, 'x', 4, 1.4], ['a', 3, 2, 3]])
       .flat(6, [['e', 'gaivota', 3, 3], ['c', 1, 0, 4]])
@@ -79,6 +88,7 @@
     (b) => b
       .flat(14, [['d', 'sign', 2], ['d', 'pine', 6], ['c', 9, 0, 4], ['d', 'pine', 12]])
       .flat(10, [['e', 'boleto', 6], ['q', 3, 3, 'c']])
+      .coopGate('a')
       .up(1).flat(8, [['c', 2, 0, 4]], { ice: 1 })
       .up(1).flat(6, [['e', 'neve', 3]])
       .gap(3, [['a', 0, 1, 3]])
@@ -89,6 +99,7 @@
       .flat(8, [['e', 'neve', 4]], { ice: 1 })
       .gap(6, [['m', 1, 0, 3, 'x', 2, 1.2]])
       .flat(10, [['k', 2], ['d', 'dog', 5], ['d', 'pine', 8]])
+      .coopLift('b')
       .up(-3).flat(12, [['e', 'boleto', 4], ['e', 'boleto', 8], ['p', 5, 2, 3], ['c', 5, 3, 3]], { ice: 1 })
       .gap(2).flat(3, null, { ice: 1 }).gap(2).flat(3, [['c', 1, 0, 1]], { ice: 1 }).gap(2)
       .flat(8, [['q', 3, 3, 'k'], ['e', 'neve', 6]])
@@ -108,6 +119,7 @@
     (b) => b
       .flat(14, [['d', 'sign', 2], ['d', 'lamp', 6], ['c', 9, 0, 4], ['d', 'jac', 11]])
       .flat(12, [['e', 'boleto', 5], ['p', 6, 2, 4], ['c', 6, 3, 4], ['e', 'pombo', 9, 5]])
+      .coopGate('a')
       .up(2).flat(6, [['e', 'bola', 3]])
       .gap(3, [['a', 0, 1, 3]])
       .flat(10, [['p', 1, 2, 3], ['p', 5, 5, 3], ['t', 6, 6], ['q', 8, 3, 'c'], ['d', 'lamp', 9]])
@@ -117,6 +129,7 @@
       .up(1).flat(5).up(1).flat(5, [['e', 'bola', 2]]).up(1).flat(6, [['q', 3, 3, 'f'], ['e', 'pombo', 3, 5]])
       .gap(7, [['p', 1, -1, 2], ['p', 4, 0, 2], ['c', 1, 0, 2], ['c', 4, 1, 2]])
       .flat(10, [['k', 2], ['d', 'jac', 6]])
+      .coopLift('b')
       .up(-3).flat(12, [['e', 'bola', 4], ['e', 'boleto', 8], ['p', 2, 2, 3], ['p', 7, 2, 3], ['c', 2, 3, 3], ['c', 7, 3, 3]])
       .gap(6, [['m', 1, 0, 3, 'x', 2, 1.3]])
       .flat(8, [['q', 2, 3, 'k'], ['e', 'boleto', 5]])
@@ -135,6 +148,7 @@
     (b) => b
       .flat(14, [['d', 'sign', 2], ['d', 'jtree', 6], ['c', 9, 0, 4], ['d', 'palm', 12]])
       .flat(10, [['e', 'quati', 6], ['q', 3, 3, 'c'], ['q', 4, 3, 'c']])
+      .coopGate('a')
       .gap(3, [['a', 0, 1, 3]])
       .flat(6, [['e', 'quati', 3]])
       .gap(8, [['p', 1, -1, 6], ['c', 2, 0, 4], ['e', 'tucano', 4, 3]])
@@ -144,6 +158,7 @@
       .flat(5, [['q', 2, 3, 'f']])
       .gap(7, [['m', 1, 0, 3, 'x', 3, 1.6], ['t', 3, 3]])
       .flat(10, [['k', 2], ['d', 'palm', 6], ['e', 'quati', 8]])
+      .coopLift('b')
       .up(-3).flat(10, [['e', 'quati', 3], ['e', 'quati', 7], ['p', 3, 2, 4], ['c', 3, 3, 4]])
       .gap(2).flat(2).gap(2).flat(2, [['c', 0, 0, 2]]).gap(2).flat(2).gap(3)
       .flat(8, [['q', 3, 3, 'k'], ['e', 'tucano', 5, 3]])
@@ -164,6 +179,7 @@
     (b) => b
       .flat(14, [['d', 'sign', 2], ['d', 'lamp', 6], ['c', 9, 0, 4], ['d', 'stall', 11]])
       .flat(12, [['e', 'fatura', 4], ['e', 'fatura', 8], ['p', 5, 2, 4], ['c', 5, 3, 4], ['e', 'drone', 9, 5]])
+      .coopGate('a')
       .up(2).flat(6, [['e', 'caixa', 3]])
       .gap(3, [['a', 0, 1, 3]])
       .flat(8, [['s', 3, 2], ['q', 6, 3, 'c'], ['e', 'drone', 4, 3]])
@@ -173,6 +189,7 @@
       .up(-4).flat(12, [['e', 'fatura', 3], ['e', 'fatura', 6], ['e', 'fatura', 9], ['q', 5, 3, 'f'], ['d', 'stall', 10]])
       .gap(6, [['m', 1, 0, 3, 'x', 2, 1.5], ['e', 'drone', 3, 3]])
       .flat(10, [['k', 2], ['d', 'stall', 6]])
+      .coopLift('b')
       .up(1).flat(4).up(1).flat(4, [['e', 'caixa', 2]]).up(1).flat(4).up(1).flat(4, [['c', 1, 0, 2]])
       .gap(9, [['m', 1, 0, 2, 'x', 2, 1.4], ['m', 6, 0, 2, 'y', 3, 1.2], ['t', 7, 5]])
       .flat(6, [['q', 2, 3, 'k'], ['e', 'fatura', 4]])
@@ -201,6 +218,10 @@
       up(n) { h += n; return b; },
       flat(w, its, o) { for (let k = 0; k < w; k++) cols.push({ h, ice: !!(o && o.ice) }); add(its); x += w; return b; },
       gap(w, its) { for (let k = 0; k < w; k++) cols.push({ h: 0 }); add(its); x += w; return b; },
+      // um segura o botão, o outro passa pela cancela e segura o botão do outro lado
+      coopGate(id) { return b.flat(16, [['S', 3, id], ['D', 8, 4, id], ['S', 12, id], ['H', 3, 3, 'SEGURA O BOTÃO!'], ['c', 13, 2, 2]]); },
+      // paredão: um sobe no pezinho do outro e lá em cima aperta o botão do elevador
+      coopLift(id) { return b.flat(7, [['L', 5, 2, 5, id], ['H', 3, 5, 'PEZINHO!']]).up(5).flat(8, [['S', 2, id], ['H', 2, 3, 'SEGURA AQUI!'], ['c', 5, 0, 3]]).up(-5); },
     };
     LEVELS[i](b);
     const W = cols.length, tiles = new Uint8Array(W * H);
@@ -210,7 +231,7 @@
     });
     const row = (hh, up) => H - hh - 1 - up;
     const set = (tx, ty, v) => { if (tx >= 0 && tx < W && ty >= 0 && ty < H && !tiles[ty * W + tx]) tiles[ty * W + tx] = v; };
-    const L = { i, W, H, cols, tiles, theme: PF.THEMES[i], coins: [], stamps: [], enemies: [], movers: [], boxes: [], decor: [], checks: [], goal: null };
+    const L = { i, W, H, cols, tiles, theme: PF.THEMES[i], coins: [], stamps: [], enemies: [], movers: [], boxes: [], decor: [], checks: [], goal: null, switches: [], gates: [], hints: [] };
     for (const it of raw) {
       const a = it.a, X = it.x, hh = it.h;
       switch (it.k) {
@@ -226,6 +247,10 @@
         case 't': L.stamps.push({ x: (X + a[0]) * TS + 8, y: row(hh, a[1]) * TS + 8, idx: L.stamps.length, got: false }); break;
         case 'd': L.decor.push({ kind: a[0], x: (X + a[1]) * TS + 8, y: (H - hh) * TS }); break;
         case 'g': L.goal = { x: (X + a[0]) * TS + 8, y: (H - hh) * TS }; break;
+        case 'S': L.switches.push({ id: a[1], x: (X + a[0]) * TS, y: (H - hh) * TS, w: TS, pressed: false }); break;
+        case 'D': { const tx = X + a[0], ty1 = H - hh - 1, ty0 = ty1 - a[1] + 1; for (let r = ty0; r <= ty1; r++) tiles[r * W + tx] = 10; L.gates.push({ id: a[2], tx, ty0, ty1, open: 0, timer: 0 }); break; }
+        case 'L': L.movers.push({ kind: 'lift', id: a[3], x0: (X + a[0]) * TS, y0: (H - hh) * TS - 4, w: a[1] * TS, range: a[2] * TS - 4, k: 0 }); break;
+        case 'H': L.hints.push({ x: (X + a[0]) * TS + 8, y: (H - hh - a[1]) * TS, text: a[2] }); break;
       }
     }
     if (L.stamps.length !== 3 || !L.goal) console.warn('Fase ' + (i + 1) + ': carimbos=' + L.stamps.length + ' goal=' + !!L.goal);

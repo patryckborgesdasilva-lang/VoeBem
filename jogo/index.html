@@ -81,7 +81,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* título */
 .title-wrap { display: grid; justify-items: center; gap: 14px; width: min(760px, 100%); text-align: center; }
-.logo { display: block; height: clamp(150px, 30vh, 252px); width: auto; image-rendering: pixelated; filter: drop-shadow(6px 6px 0 rgba(0, 0, 0, .45)); }
+.title-h { margin: 0; display: grid; justify-items: center; gap: 14px; }
+.logo { display: block; width: min(480px, 88vw); height: auto; image-rendering: pixelated; filter: drop-shadow(6px 6px 0 rgba(0, 0, 0, .45)); }
+.game-word { display: block; font: clamp(24px, 5vw, 44px)/1 var(--f-8bit); color: var(--white); text-transform: uppercase; letter-spacing: .4em; padding-left: .4em; text-shadow: 4px 4px 0 var(--orange), 8px 8px 0 var(--ink); }
 .tag { margin: -4px 0 0; font: clamp(8px, 1.3vw, 11px)/1.6 var(--f-8bit); color: var(--white); background: var(--orange); padding: 6px 10px; box-shadow: 4px 4px 0 var(--ink); text-transform: uppercase; }
 .cast { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; width: 100%; }
 .hero { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 12px; align-items: center; text-align: left; padding: 10px 12px; transition: opacity .15s; }
@@ -144,11 +146,12 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .map-grid { grid-template-columns: minmax(0, 1fr); }
   #mapSvg { max-height: 36vh; }
   .screen { place-items: start center; }
-  .logo { height: 128px; }
+  .logo { width: min(340px, 86vw); }
 }
 @media (max-height: 560px) and (min-width: 721px) {
   .title-wrap { gap: 8px; }
-  .logo { height: 120px; }
+  .logo { width: 300px; }
+  .game-word { font-size: 22px; }
   .hero { padding-block: 6px; }
   .hero canvas { width: 40px; height: 60px; }
   .hero { grid-template-columns: 40px minmax(0, 1fr); }
@@ -180,7 +183,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
   <section id="title" class="screen">
     <div class="title-wrap">
-      <img class="logo" src="img/logo-pixel.png" alt="Parcelei e fui" width="122" height="126">
+      <h1 class="title-h"><img class="logo" src="img/logo-nome-pixel.png" alt="Parcelei e fui" width="152" height="72"><span class="game-word">Game</span></h1>
       <p class="tag">O jogo da nossa viagem · 6x sem juros</p>
       <div class="cast" id="cast"></div>
       <nav class="box title-menu" aria-label="Escolha o modo de jogo">
