@@ -141,7 +141,22 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .over-sub { margin: 0; font: clamp(9px, 1.5vw, 12px)/1.8 var(--f-8bit); color: var(--orange); text-transform: uppercase; }
 .over-menu { width: min(360px, 100%); }
 
+/* controles no celular */
+.phones-box { width: min(760px, 100%); display: grid; gap: 14px; }
+.phones-box .story { margin: 0; font-size: 24px; color: #e9f0e5; }
+.qr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.qr { display: grid; justify-items: center; gap: 8px; padding: 12px; border: 4px solid var(--white); background: var(--ink); text-align: center; }
+.qr[data-p="0"] .hero-name { color: var(--lime); }
+.qr[data-p="1"] .hero-name { color: #ffad4d; }
+.qr-img { width: min(220px, 100%); aspect-ratio: 1; background: var(--white); display: grid; place-items: center; color: var(--ink); font: 9px/1.6 var(--f-8bit); padding: 6px; }
+.qr-img svg { width: 100%; height: 100%; display: block; }
+.qr-st { margin: 0; font: 9px/1.6 var(--f-8bit); color: var(--gold); text-transform: uppercase; }
+.qr-st.ok { color: var(--lime); }
+.qr.ok { border-color: var(--lime); }
+#toast { position: absolute; z-index: 6; left: 50%; bottom: max(24px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100% - 32px); background: var(--panel); border: 4px solid var(--white); box-shadow: 0 0 0 4px var(--ink); padding: 10px 14px; font: 10px/1.6 var(--f-8bit); text-transform: uppercase; color: var(--gold); pointer-events: none; }
+
 @media (max-width: 720px) {
+  .qr-grid { grid-template-columns: minmax(0, 1fr); }
   .cast { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .map-grid { grid-template-columns: minmax(0, 1fr); }
   #mapSvg { max-height: 36vh; }
@@ -191,6 +206,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
           <li><button type="button" class="mi go" data-mode="2">2 jogadores</button></li>
           <li><button type="button" class="mi" data-mode="1" data-solo="0">1 jogador · Patryck</button></li>
           <li><button type="button" class="mi" data-mode="1" data-solo="1">1 jogador · Mari</button></li>
+          <li><button type="button" class="mi" id="btnPhones">Controle no celular</button></li>
         </ul>
       </nav>
       <p class="press blink" id="press">Aperte Enter</p>
@@ -224,12 +240,28 @@ button { font: inherit; color: inherit; cursor: pointer; }
     </div>
   </section>
 
+  <section id="phones" class="screen" hidden>
+    <div class="box phones-box">
+      <h2 class="box-title">Controle no celular</h2>
+      <p class="story">Aponte a câmera do celular pro código e abra o link. Cada um lê o seu.</p>
+      <div class="qr-grid">
+        <div class="qr" data-p="0"><p class="hero-name">Patryck</p><div class="qr-img"></div><p class="qr-st"></p></div>
+        <div class="qr" data-p="1"><p class="hero-name">Mari</p><div class="qr-img"></div><p class="qr-st"></p></div>
+      </div>
+      <p class="hint" id="phonesMsg"></p>
+      <ul class="menu"><li><button type="button" id="btnPhonesBack" class="mi go">Pronto</button></li></ul>
+    </div>
+  </section>
+
+  <div id="toast" role="status" hidden></div>
+
   <section id="pause" class="screen" hidden>
     <div class="box card">
       <h2 class="box-title">Pausa</h2>
       <ul class="menu">
         <li><button type="button" id="btnResume" class="mi go">Continuar</button></li>
         <li><button type="button" id="btnRetryP" class="mi">Recomeçar fase</button></li>
+        <li><button type="button" id="btnPhonesP" class="mi">Controle no celular</button></li>
         <li><button type="button" id="btnMapP" class="mi">Roteiro</button></li>
       </ul>
     </div>
@@ -268,6 +300,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 <script src="js/art.js"></script>
 <script src="js/levels.js"></script>
 <script src="js/audio.js"></script>
+<script src="vendor/peerjs.min.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="js/remote.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

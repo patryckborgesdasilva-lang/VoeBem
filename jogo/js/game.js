@@ -97,9 +97,11 @@
     if (G.mode === 1) {
       l = k.KeyA || k.ArrowLeft; r = k.KeyD || k.ArrowRight; j = k.KeyW || k.ArrowUp || k.Space;
       for (const q of P) { l = l || q.l; r = r || q.r; j = j || q.j; }
+      for (const q of PF.remote.input) { l = l || q.l; r = r || q.r; j = j || q.j; }
     } else if (i === 0) { l = k.KeyA; r = k.KeyD; j = k.KeyW || k.Space; g = P.length > 1 ? P[0] : null; }
     else { l = k.ArrowLeft; r = k.ArrowRight; j = k.ArrowUp || k.ShiftRight || k.Numpad0; g = P.length > 1 ? P[1] : P[0]; }
     if (g) { l = l || g.l; r = r || g.r; j = j || g.j; }
+    if (G.mode === 2) { const q = PF.remote.input[i]; l = l || q.l; r = r || q.r; j = j || q.j; }
     return { l: !!(l || t.l), r: !!(r || t.r), j: !!(j || t.j) };
   }
 
@@ -150,7 +152,7 @@
   addEventListener('resize', resize);
 
   /* ---------------- telas (DOM) ---------------- */
-  const SCREENS = ['title', 'map', 'intro', 'pause', 'clear', 'over', 'ending'];
+  const SCREENS = ['title', 'map', 'intro', 'phones', 'pause', 'clear', 'over', 'ending'];
   function screen(id) {
     SCREENS.forEach((s) => { $(s).hidden = s !== id; });
     if (id) { const b = $(id).querySelector('.go'); if (b) setTimeout(() => b.focus({ preventScroll: true }), 30); }
@@ -196,7 +198,7 @@
       '<div class="box hero" data-c="' + c + '"><canvas width="18" height="26" aria-hidden="true"></canvas><div>' +
       '<p class="hero-name">' + PF.HEROES[c].name + '</p><p class="hero-bio">' + BIO[c] + '</p><p class="hero-keys"></p></div></div>').join('');
     document.querySelectorAll('.hero canvas').forEach((c, i) => drawSprite(c, PF.heroFrames(i, 'py').idle));
-    document.querySelectorAll('#title .mi').forEach((b) => {
+    document.querySelectorAll('#title .mi[data-mode]').forEach((b) => {
       b.addEventListener('focus', () => showCast(b));
       b.addEventListener('mouseenter', () => showCast(b));
       b.addEventListener('click', () => {
@@ -206,6 +208,11 @@
     });
     $('press').textContent = isTouch ? 'Toque numa opção' : 'Aperte Enter';
     $('btnBack').onclick = () => goTitle();
+    $('btnPhones').onclick = () => openPhones('title');
+    $('btnPhonesP').onclick = () => openPhones('pause');
+    $('btnPhonesBack').onclick = closePhones;
+    PF.remote.onchange = remoteChanged;
+    PF.remote.onbutton = remoteButton;
     $('btnResume').onclick = resume;
     $('btnRetryP').onclick = () => startLevel(G.li);
     $('btnRetry').onclick = () => startLevel(G.li);
@@ -216,6 +223,65 @@
     $('btnPause').onclick = () => { if (G.state === 'play') pause(); };
     $('btnMute').onclick = toggleMute;
     $('btnMute').setAttribute('aria-pressed', String(save.muted));
+  }
+
+  /* controles no celular */
+  let toastT = null;
+  function toast(text) {
+    const el = $('toast'); el.textContent = text; el.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 2600);
+  }
+  function openPhones(from) {
+    G.phonesFrom = from; G.state = 'phones';
+    PF.audio.unlock(); PF.remote.open();
+    renderPhones(true); screen('phones');
+  }
+  function closePhones() {
+    if (G.phonesFrom === 'pause' && G.L) { G.state = 'pause'; screen('pause'); }
+    else goTitle();
+  }
+  let qrRoom = null;
+  function renderPhones(force) {
+    const R = PF.remote;
+    document.querySelectorAll('#phones .qr').forEach((el) => {
+      const p = +el.dataset.p, img = el.querySelector('.qr-img'), st = el.querySelector('.qr-st'), ok = R.connected(p);
+      if (R.room && (force || qrRoom !== R.room)) img.innerHTML = R.qrSvg(R.url(p));
+      else if (!R.room) img.textContent = R.error ? 'Sem código' : 'Gerando código…';
+      st.textContent = ok ? 'Conectado!' : R.room ? 'Esperando o celular' : '';
+      st.classList.toggle('ok', ok); el.classList.toggle('ok', ok);
+    });
+    qrRoom = R.room;
+    $('phonesMsg').textContent = R.error ? R.error + ' Na prévia do claude.ai os controles pelo celular não funcionam: abra o jogo pelo site.' : 'O celular e o computador precisam de internet. No mesmo Wi-Fi a resposta fica mais rápida. Dá pra continuar usando o teclado junto.';
+  }
+  const lastConn = [false, false];
+  function remoteChanged() {
+    for (let p = 0; p < 2; p++) {
+      const ok = PF.remote.connected(p);
+      if (ok !== lastConn[p]) toast('Controle ' + (p ? 'da Mari' : 'do Patryck') + (ok ? ' conectado' : ' desconectado'));
+      lastConn[p] = ok;
+    }
+    if (!$('phones').hidden) renderPhones(false);
+  }
+  function remoteButton(p, b) {
+    if (b === 'pause') { if (G.state === 'play') pause(); else if (G.state === 'pause') resume(); return; }
+    if (G.state === 'play' || G.state === 'phones') return;
+    if (G.state === 'intro') { if (b === 'a') beginPlay(); return; }
+    if (G.state === 'won' && !G.cardShown) return;
+    if (b === 'a') menuPress(); else menuMove(b === 'left' ? -1 : 1);
+  }
+  let stT = 0;
+  function remoteStatus(dt) {
+    stT -= dt; if (stT > 0 || !PF.remote.peer) return;
+    stT = 0.5; PF.remote.tick();
+    for (let c = 0; c < 2; c++) {
+      if (!PF.remote.connected(c)) continue;
+      const pl = G.L && (G.state === 'play' || G.state === 'pause' || G.state === 'intro') ? (G.mode === 2 ? G.players[c] : G.players[0]) : null;
+      PF.remote.send(c, { t: 'st', hp: pl ? Math.max(0, pl.hp) : null });
+    }
+  }
+  function buzz(p) {
+    if (G.mode === 2) PF.remote.send(p.i, { t: 'buzz' });
+    else { PF.remote.send(0, { t: 'buzz' }); PF.remote.send(1, { t: 'buzz' }); }
   }
 
   /* roteiro: mapa + lista de destinos */
@@ -449,6 +515,7 @@
   const alive = (p) => !p.dead && !p.out;
   function kill(p) {
     if (p.dead || p.out) return;
+    buzz(p);
     p.dead = true; p.deadT = 0; p.vy = -290; p.vx = 0; p.hp = 0; p.mover = null; p.chute = false; p.star = 0;
     sfx('die');
   }
@@ -456,6 +523,7 @@
     if (p.inv > 0 || p.star > 0 || !alive(p) || G.god) return;
     p.hp--;
     if (p.hp <= 0) { kill(p); return; }
+    buzz(p);
     p.inv = 1.6; p.stun = 0.25; p.vy = -230; p.vx = (p.x + p.w / 2 < fromX ? -1 : 1) * 150; p.onGround = false; p.mover = null;
     sfx('hurt');
   }
@@ -824,7 +892,7 @@
   }
   function draw() {
     wx.imageSmoothingEnabled = false;
-    const inLevel = G.L && (G.state === 'play' || G.state === 'pause' || G.state === 'won' || G.state === 'over' || G.state === 'intro');
+    const inLevel = G.L && (G.state === 'play' || G.state === 'pause' || G.state === 'won' || G.state === 'over' || G.state === 'intro' || G.state === 'phones');
     if (inLevel) drawWorld();
     else PF.background(G.menuBg).draw(wx, G.t * 16, G.t, VW);
     ctx.imageSmoothingEnabled = false;
@@ -880,7 +948,7 @@
       while (acc >= STEP && n < 5) { step(STEP); acc -= STEP; n++; if (!G.L || (G.state !== 'play' && G.state !== 'won')) break; }
       if (n === 5) acc = 0;
     } else G.t += dt;
-    draw(); updateHud();
+    draw(); updateHud(); remoteStatus(dt);
   }
 
   function boot(data) {
