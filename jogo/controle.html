@@ -22,8 +22,8 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
-*, *::before, *::after { box-sizing: border-box; }
-html, body { height: 100%; margin: 0; }
+*, *::before, *::after { box-sizing: border-box; touch-action: none; }
+html, body { height: 100%; margin: 0; overflow: hidden; position: fixed; inset: 0; width: 100%; }
 body {
   background: var(--ink); color: var(--white); font: 20px/1.1 var(--f-text);
   overflow: hidden; overscroll-behavior: none; touch-action: none;
@@ -41,7 +41,8 @@ body {
 .hearts i.off { background: #ffffff33; }
 .status { margin: 0; font: 9px/1.5 var(--f-8bit); color: var(--gold); text-transform: uppercase; text-align: right; }
 .status.ok { color: var(--lime); }
-.small-btn { font: 10px var(--f-8bit); color: var(--white); background: var(--panel); border: 3px solid var(--white); padding: 8px 10px; }
+.small-btn { font: 10px var(--f-8bit); color: var(--white); background: var(--panel); border: 3px solid var(--white); padding: 12px 14px; }
+.small-btn.on { background: var(--gold); color: var(--ink); }
 .board { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px; min-height: 0; }
 .dpad { display: flex; gap: 12px; justify-content: flex-start; height: 100%; max-height: 260px; }
 .btn {
@@ -105,6 +106,13 @@ body {
   if (!sala) { showMsg('Código inválido', 'Abra este controle lendo o QR code que aparece na tela do jogo, no computador.'); return; }
   if (typeof window.Peer !== 'function' || typeof window.RTCPeerConnection !== 'function') { showMsg('Navegador sem suporte', 'Abra o QR code no Chrome ou no Safari do celular.'); return; }
 
+  function tapOn(el, fn) {
+    var down = false;
+    el.addEventListener('pointerdown', function (e) { down = true; e.preventDefault(); el.classList.add('on'); });
+    el.addEventListener('pointerleave', function () { down = false; el.classList.remove('on'); });
+    el.addEventListener('pointerup', function (e) { el.classList.remove('on'); if (down) { down = false; e.preventDefault(); fn(); } });
+    el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
+  }
   // estado dos botões, com vários dedos ao mesmo tempo e deslizando entre ◀ e ▶
   var state = { l: false, r: false, j: false }, pointers = {};
   var btns = Array.prototype.slice.call(document.querySelectorAll('[data-k]'));
@@ -130,6 +138,22 @@ body {
     document.addEventListener(ev, function (e) { delete pointers[e.pointerId]; recompute(); });
   });
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  // sem zoom: toque duplo, pinça e rolagem ficam bloqueados (o Safari do iPhone ignora o user-scalable=no)
+  ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false });
+  });
+  ['gesturestart', 'gesturechange', 'gestureend', 'dblclick'].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false });
+  });
+  // se mesmo assim o navegador ampliar a tela, volta pro tamanho normal
+  var vp = document.querySelector('meta[name="viewport"]'), VPC = vp.getAttribute('content');
+  function unzoom() {
+    if (!window.visualViewport || window.visualViewport.scale <= 1.02) return;
+    vp.setAttribute('content', VPC + ', minimum-scale=1');
+    setTimeout(function () { vp.setAttribute('content', VPC); }, 60);
+    pointers = {}; recompute();
+  }
+  if (window.visualViewport) { window.visualViewport.addEventListener('resize', unzoom); setInterval(unzoom, 700); }
   window.addEventListener('blur', function () { pointers = {}; recompute(); });
 
   // conexão com o computador
@@ -173,8 +197,8 @@ body {
   // reenvia o estado de tempos em tempos (se uma mensagem se perder, o jogo se corrige sozinho)
   setInterval(function () { send(); }, 400);
 
-  $('pauseBtn').addEventListener('click', function () { send({ t: 'pause' }); if (navigator.vibrate) { try { navigator.vibrate(20); } catch (e) {} } });
-  $('fsBtn').addEventListener('click', function () {
+  tapOn($('pauseBtn'), function () { send({ t: 'pause' }); if (navigator.vibrate) { try { navigator.vibrate(20); } catch (e) {} } });
+  tapOn($('fsBtn'), function () {
     var el = document.documentElement;
     try { (el.requestFullscreen || el.webkitRequestFullscreen).call(el).catch(function () {}); } catch (e) {}
     try { screen.orientation.lock('landscape').catch(function () {}); } catch (e) {}
