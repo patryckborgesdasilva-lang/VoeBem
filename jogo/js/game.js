@@ -44,7 +44,8 @@
   function pname(c) { return PF.HEROES[c].name; }
 
   /* ---------------- estado ---------------- */
-  const G = { state: 'title', mode: 2, L: null, li: 0, sel: 0, players: [], cam: 0, t: 0, coins: 0, kills: 0, lives: 5, time: 0, got: [false, false, false], check: null, parts: [], pops: [], picks: [], enemies: [], pads: [], bot: null, wonT: 0, bg: null, ts: null, static: null, menuBg: 'sp' };
+  const G = { state: 'title', mode: 2, L: null, li: 0, sel: 0, players: [], cam: 0, t: 0, coins: 0, kills: 0, lives: 5, time: 0, got: [false, false, false], check: null, parts: [], pops: [], picks: [], enemies: [], pads: [], bot: null, wonT: 0, bg: null, ts: null, static: null, menuBg: 'sp', netPops: [], netSfx: [] };
+  const NET = PF.net;
   PF.G = G;
 
   /* ---------------- entrada ---------------- */
@@ -56,6 +57,12 @@
 
   addEventListener('keydown', (e) => {
     PF.audio.unlock();
+    if (NET.role === 'guest') {
+      keys[e.code] = true;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+      if (e.code === 'Escape' || e.code === 'KeyP') NET.send({ t: 'pause' });
+      return;
+    }
     if (e.code === 'KeyM') toggleMute();
     if (G.state === 'play') {
       keys[e.code] = true;
@@ -90,8 +97,15 @@
     } catch (e) { /* gamepad indisponível neste contexto */ }
     return out;
   }
+  function localInput() {
+    const k = keys, t = touch[0];
+    let l = k.KeyA || k.ArrowLeft, r = k.KeyD || k.ArrowRight, j = k.KeyW || k.ArrowUp || k.Space;
+    for (const q of G.pads) { l = l || q.l; r = r || q.r; j = j || q.j; }
+    return { l: !!(l || t.l), r: !!(r || t.r), j: !!(j || t.j) };
+  }
   function getInput(i) {
     if (G.bot && G.bot[i]) return G.bot[i];
+    if (NET.role === 'host' && G.mode === 2) return i === NET.me ? localInput() : NET.connected() ? { ...NET.input } : { l: false, r: false, j: false };
     const k = keys, t = touch[i], P = G.pads;
     let l, r, j, g = null;
     if (G.mode === 1) {
@@ -110,11 +124,7 @@
     touch.forEach((t) => { t.l = t.r = t.j = false; });
     if (!isTouch) { el.hidden = true; return; }
     const b = (p, a, lab, sym, cls) => '<button type="button" class="tb ' + (cls || '') + '" data-p="' + p + '" data-a="' + a + '" aria-label="' + lab + '">' + sym + '</button>';
-    if (G.mode === 1) {
-      el.innerHTML = '<div class="pad" data-p="0">' + b(0, 'l', 'Esquerda', '◀') + b(0, 'r', 'Direita', '▶') + '</div><div class="pad jump" data-p="0">' + b(0, 'j', 'Pular', '▲') + '</div>';
-    } else {
-      el.innerHTML = [0, 1].map((p) => '<div class="pad" data-p="' + p + '">' + b(p, 'j', 'Pular', '▲', 'wide') + b(p, 'l', 'Esquerda', '◀') + b(p, 'r', 'Direita', '▶') + '</div>').join('');
-    }
+    el.innerHTML = '<div class="pad" data-p="0">' + b(0, 'l', 'Esquerda', '◀') + b(0, 'r', 'Direita', '▶') + '</div><div class="pad jump" data-p="0">' + b(0, 'j', 'Pular', '▲') + '</div>';
     el.hidden = false;
   }
   (function touchEvents() {
@@ -175,7 +185,7 @@
   }, 800);
 
   /* ---------------- telas (DOM) ---------------- */
-  const SCREENS = ['title', 'map', 'intro', 'phones', 'pause', 'clear', 'over', 'ending'];
+  const SCREENS = ['title', 'map', 'intro', 'phones', 'netscreen', 'netmsg', 'pause', 'clear', 'over', 'ending'];
   function screen(id) {
     SCREENS.forEach((s) => { $(s).hidden = s !== id; });
     if (id) { const b = $(id).querySelector('.go'); if (b) setTimeout(() => b.focus({ preventScroll: true }), 30); }
@@ -221,10 +231,18 @@
       '<div class="box hero" data-c="' + c + '"><canvas width="18" height="26" aria-hidden="true"></canvas><div>' +
       '<p class="hero-name">' + PF.HEROES[c].name + '</p><p class="hero-bio">' + BIO[c] + '</p><p class="hero-keys"></p></div></div>').join('');
     document.querySelectorAll('.hero canvas').forEach((c, i) => drawSprite(c, PF.heroFrames(i, 'py').idle));
+    if (isTouch) ['#title .mi[data-mode="2"]', '#btnPhones'].forEach((q) => { const el = document.querySelector(q); if (el) el.parentElement.hidden = true; });
+    $('btnNet').onclick = openNet;
+    document.querySelectorAll('#netWho .mi').forEach((b) => { b.onclick = () => { NET.me = +b.dataset.me; NET.send({ t: 'hi', me: NET.me }); renderNet(); }; });
+    $('btnNetGo').onclick = () => { if (!NET.connected()) return; save.mode = G.mode = 2; store(); goMap(); };
+    $('btnNetBack').onclick = () => { NET.leave(); goTitle(); };
+    $('btnNetResume').onclick = () => NET.send({ t: 'pause' });
+    NET.onchange = netChanged; NET.onmessage = netMessage;
     document.querySelectorAll('#title .mi[data-mode]').forEach((b) => {
       b.addEventListener('focus', () => showCast(b));
       b.addEventListener('mouseenter', () => showCast(b));
       b.addEventListener('click', () => {
+        if (NET.role) NET.leave();
         save.mode = G.mode = +b.dataset.mode; save.solo = +(b.dataset.solo || 0); store();
         PF.audio.sfx('select'); goMap();
       });
@@ -243,7 +261,7 @@
     $('btnMapO').onclick = () => goMap(G.li);
     $('btnNext').onclick = () => { if (G.li === PF.LEVEL_COUNT - 1) showEnding(); else goMap(G.li + 1); };
     $('btnEnd').onclick = () => goMap(G.li);
-    $('btnPause').onclick = () => { if (G.state === 'play') pause(); };
+    $('btnPause').onclick = () => { if (NET.role === 'guest') NET.send({ t: 'pause' }); else if (G.state === 'play') pause(); };
     $('btnMute').onclick = toggleMute;
     $('btnMute').setAttribute('aria-pressed', String(save.muted));
   }
@@ -379,6 +397,10 @@
     screen('ending'); PF.audio.music('menu');
   }
   function showIntro() {
+    fillIntro();
+    G.state = 'intro'; G.introT = 0; screen('intro'); setHud(true);
+  }
+  function fillIntro() {
     const th = G.L.theme;
     $('introWorld').textContent = 'Parcela ' + (G.li + 1) + ' de 6';
     $('introName').textContent = th.name;
@@ -386,7 +408,6 @@
     $('introLives').textContent = '× ' + G.lives;
     const c = $('introCast'); c.getContext('2d').clearRect(0, 0, c.width, c.height);
     G.players.forEach((p, k) => drawSprite(c, p.frames.idle, G.players.length === 2 ? 1 + k * 20 : 11, 2));
-    G.state = 'intro'; G.introT = 0; screen('intro'); setHud(true);
   }
   function beginPlay() {
     if (G.state !== 'intro') return;
@@ -519,9 +540,9 @@
 
   /* ---------------- efeitos ---------------- */
   function part(x, y, vx, vy, life, col, sz, g) { if (G.parts.length < 260) G.parts.push({ x, y, vx, vy, life, max: life, col, sz: sz || 2, g: g == null ? 300 : g }); }
-  function pop(text, x, y, col) { G.pops.push({ text, x, y, t: 0, col: col || '#ffffff' }); }
+  function pop(text, x, y, col) { G.pops.push({ text, x, y, t: 0, col: col || '#ffffff' }); if (NET.role === 'host' && G.netPops.length < 30) G.netPops.push([text, Math.round(x), Math.round(y), col || '#ffffff']); }
   function sparkle(x, y, col, n) { for (let k = 0; k < (n || 6); k++) part(x, y, (Math.random() - 0.5) * 120, -Math.random() * 120, 0.4 + Math.random() * 0.3, col, 2, 200); }
-  const sfx = (n) => PF.audio.sfx(n);
+  const sfx = (n) => { PF.audio.sfx(n); if (NET.role === 'host' && G.netSfx.length < 30) G.netSfx.push(n); };
 
   function addCoin(x, y) {
     G.coins++; sfx('coin'); sparkle(x, y, '#ffe38a', 4);
@@ -965,12 +986,169 @@
     setTxt('hLives', '×' + G.lives);
   }
 
+  /* ---------------- modo 2 celulares ---------------- */
+  const who = (c, art) => (art ? (c ? 'a ' : 'o ') : '') + PF.HEROES[c].name;
+  function openNet() {
+    if (PF.remote && PF.remote.peer) { /* controles do PC podem continuar ligados */ }
+    G.state = 'net'; PF.audio.unlock(); NET.host();
+    renderNet(true); screen('netscreen');
+  }
+  let netQrCode = null;
+  function renderNet(force) {
+    if ($('netscreen').hidden && !force) return;
+    document.querySelectorAll('#netWho .mi').forEach((b) => b.classList.toggle('sel', +b.dataset.me === NET.me));
+    const ok = NET.connected(), img = $('netQr').querySelector('.qr-img'), st = $('netQr').querySelector('.qr-st');
+    $('netFor').textContent = 'Celular ' + (NET.me ? 'do Patryck' : 'da Mari');
+    if (NET.code && (force || netQrCode !== NET.code)) img.innerHTML = PF.remote.qrSvg(NET.url());
+    else if (!NET.code) img.textContent = NET.error ? 'Sem código' : 'Gerando código…';
+    netQrCode = NET.code;
+    st.textContent = ok ? 'Conectado!' : NET.code ? 'Esperando o outro celular' : '';
+    st.classList.toggle('ok', ok); $('netQr').classList.toggle('ok', ok);
+    $('btnNetGo').disabled = !ok;
+    $('netMsgHost').textContent = NET.error || 'Os dois celulares precisam de internet; no mesmo Wi-Fi fica mais rápido. Este celular roda o jogo e escolhe as fases.';
+  }
+  let netWas = false;
+  function netChanged() {
+    const ok = NET.connected();
+    if (NET.role === 'host') {
+      if (ok !== netWas) toast(ok ? who(1 - NET.me, true).replace(/^./, (m) => m.toUpperCase()) + ' entrou na partida' : who(1 - NET.me, true).replace(/^./, (m) => m.toUpperCase()) + ' saiu da partida');
+      renderNet(false);
+    } else if (NET.role === 'guest') {
+      if (!ok && (netWas || NET.error)) { G.L = null; gLevel = -1; gShown = ''; netMsg(netWas ? 'Conexão perdida' : 'Não deu pra entrar', NET.error || 'O outro celular saiu ou ficou sem internet. Leia o QR code de novo.'); setHud(false); }
+    }
+    netWas = ok;
+  }
+  function netMessage(d) {
+    if (NET.role === 'host') {
+      if (d.t === 'pause') { if (G.state === 'play') pause(); else if (G.state === 'pause') resume(); }
+    } else {
+      if (d.t === 'hi') NET.me = d.me === 1 ? 1 : 0;
+      if (d.t === 's') guestApply(d);
+    }
+  }
+  function netMsg(title, text, resume) {
+    $('netMsgTitle').textContent = title; $('netMsgText').textContent = text;
+    $('btnNetResume').parentElement.hidden = !resume;
+    screen('netmsg');
+  }
+  // anfitrião: manda o que está acontecendo ~30 vezes por segundo
+  const r1 = (v) => Math.round(v * 10) / 10;
+  let netT = 0, netTick = 0;
+  function snapshot() {
+    const L = G.L, inLevel = L && ['intro', 'play', 'pause', 'won', 'over'].includes(G.state);
+    const s = { t: 's', st: inLevel ? G.state : 'menu', cs: !!G.cardShown, me: NET.me };
+    if (!inLevel) return s;
+    s.li = G.li; s.tm = r1(G.time); s.co = G.coins; s.k = G.kills; s.lv = G.lives; s.g = G.got.map(Number); s.cam = r1(G.cam);
+    s.p = G.players.map((p) => [r1(p.x), r1(p.y), r1(p.vx), p.face, p.onGround ? 1 : 0, p.dead ? 1 : 0, r1(p.deadT), p.hp, r1(p.inv), r1(p.star), p.chute ? 1 : 0, r1(p.anim), p.out ? 1 : 0]);
+    s.e = G.enemies.map((e) => (e.gone ? 0 : [r1(e.x), r1(e.y), e.face, r1(e.t), e.dead ? 1 : 0, e.flip ? 1 : 0, e.active ? 1 : 0]));
+    s.c = L.coins.map((c) => (c.got ? 1 : 0)).join('');
+    s.sg = L.stamps.map((q) => (q.got ? 1 : 0)).join('');
+    s.b = L.boxes.map((b) => (b.used ? 1 : 0)).join('');
+    s.pk = G.picks.map((k) => [k.kind === 'card' ? 1 : 0, r1(k.x), r1(k.y), r1(k.ty), r1(k.t), k.got ? 1 : 0]);
+    s.ck = L.checks.map((c) => (c.on ? 1 : 0)).join('');
+    s.sw = L.switches.map((q) => (q.pressed ? 1 : 0)).join('');
+    s.gt = L.gates.map((g) => r1(g.open));
+    s.mv = L.movers.map((m) => [r1(m.x), r1(m.y)]);
+    s.cr = L.crates.map((c) => [r1(c.x), r1(c.y)]);
+    s.po = G.netPops.splice(0); s.sf = G.netSfx.splice(0);
+    return s;
+  }
+  function hostTick(dt) {
+    if (NET.role !== 'host') return;
+    netTick -= dt; if (netTick <= 0) { netTick = 0.5; NET.tick(); }
+    if (!NET.connected()) { G.netPops.length = 0; G.netSfx.length = 0; return; }
+    netT -= dt; if (netT > 0) return;
+    const s = snapshot(); netT = s.st === 'menu' ? 0.3 : 1 / 30;
+    NET.send(s);
+  }
+  // convidado: desenha o que o anfitrião manda e devolve os comandos
+  let gSnap = null, gLevel = -1, gShown = '', gIn = '', gInT = 0;
+  function guestStart(code) {
+    G.state = 'guest'; G.L = null; setHud(false);
+    NET.onchange = netChanged; NET.onmessage = netMessage;
+    NET.join(String(code).toUpperCase().replace(/[^A-Z0-9]/g, ''));
+    netMsg('Entrando na partida…', 'Conectando com o outro celular.');
+  }
+  function guestApply(s) {
+    gSnap = s;
+    if (s.po) for (const q of s.po) G.pops.push({ text: q[0], x: q[1], y: q[2], t: 0, col: q[3] });
+    if (s.sf) for (const n of s.sf) PF.audio.sfx(n);
+  }
+  function guestBuild(li) {
+    G.li = li; G.mode = 2; G.coop = true;
+    G.L = PF.buildLevel(li, 2); G.bg = PF.background(G.L.theme.id); buildStatic();
+    G.L.movers.forEach((m) => { m.x = m.x0; m.y = m.y0; m.py = m.y0; m.dx = m.dy = 0; m.t = 0; });
+    G.players = [newPlayer(0, 0), newPlayer(1, 1)]; G.enemies = G.L.enemies.map(mkEnemy);
+    G.picks = []; G.parts = []; G.pops = []; G.cam = 0;
+    gLevel = li; hudC = {};
+  }
+  function guestLevel(s, dt) {
+    const L = G.L, k = Math.min(1, dt * 18);
+    const lerp = (o, key, v) => { o[key] = Math.abs(o[key] - v) > 40 ? v : o[key] + (v - o[key]) * k; };
+    G.time = s.tm; G.coins = s.co; G.kills = s.k; G.lives = s.lv; G.got = s.g.map(Boolean);
+    lerp(G, 'cam', s.cam);
+    s.p.forEach((a, i) => {
+      const p = G.players[i]; if (!p) return;
+      lerp(p, 'x', a[0]); lerp(p, 'y', a[1]);
+      p.vx = a[2]; p.face = a[3]; p.onGround = !!a[4]; p.dead = !!a[5]; p.deadT = a[6]; p.hp = a[7]; p.inv = a[8]; p.star = a[9]; p.chute = !!a[10]; p.anim = a[11]; p.out = !!a[12];
+    });
+    s.e.forEach((a, i) => {
+      const e = G.enemies[i]; if (!e) return;
+      if (!a) { e.gone = true; return; }
+      e.gone = false; lerp(e, 'x', a[0]); lerp(e, 'y', a[1]); e.face = a[2]; e.t = a[3]; e.dead = !!a[4]; e.flip = !!a[5]; e.active = !!a[6];
+    });
+    L.coins.forEach((c, i) => { c.got = s.c[i] === '1'; });
+    L.stamps.forEach((q, i) => { q.got = s.sg[i] === '1'; });
+    L.boxes.forEach((b, i) => { const u = s.b[i] === '1'; if (u && !b.used) b.bump = 0.2; b.used = u; if (b.bump > 0) b.bump -= dt; });
+    G.picks = s.pk.map((a) => ({ kind: a[0] ? 'card' : 'food', x: a[1], y: a[2], ty: a[3], t: a[4], got: !!a[5] }));
+    L.checks.forEach((c, i) => { c.on = s.ck[i] === '1'; });
+    L.switches.forEach((q, i) => { q.pressed = s.sw[i] === '1'; });
+    L.gates.forEach((g, i) => { g.open = s.gt[i]; });
+    L.movers.forEach((m, i) => { const a = s.mv[i]; if (a) { lerp(m, 'x', a[0]); lerp(m, 'y', a[1]); } });
+    L.crates.forEach((c, i) => { const a = s.cr[i]; if (a) { lerp(c, 'x', a[0]); lerp(c, 'y', a[1]); } });
+  }
+  function guestScreens(s) {
+    const host = who(NET.me, true), mine = who(1 - NET.me, true);
+    let key = 'wait';
+    if (s.st === 'intro') key = 'intro' + s.li;
+    else if (s.st === 'play' || (s.st === 'won' && !s.cs)) key = 'play';
+    else if (s.st === 'pause') key = 'pause';
+    else if (s.st === 'won') key = 'clear';
+    else if (s.st === 'over') key = 'over';
+    G.state = s.st === 'menu' ? 'guest' : s.st;
+    if (key === gShown) return;
+    gShown = key;
+    if (key.startsWith('intro')) { fillIntro(); screen('intro'); setHud(true); PF.audio.music(null); }
+    else if (key === 'play') { screen(null); setHud(true); buildTouch(); if (G.L) PF.audio.music(G.L.theme.tune); }
+    else if (key === 'pause') { setHud(true); netMsg('Pausa', 'O jogo está pausado.', true); }
+    else if (key === 'clear') { setHud(true); PF.audio.music(null); netMsg('Vídeo postado!', 'Parcela quitada! Esperando ' + host + ' seguir pro próximo destino.'); }
+    else if (key === 'over') { setHud(true); PF.audio.music(null); netMsg('Game over', 'Limite estourado! Esperando ' + host + ' tentar de novo.'); }
+    else { setHud(false); PF.audio.music('menu'); netMsg('Conectado!', 'Você é ' + mine + '. Esperando ' + host + ' escolher a fase.'); }
+  }
+  function guestTick(dt) {
+    G.t += dt;
+    for (let i = G.pops.length - 1; i >= 0; i--) { const q = G.pops[i]; q.t += dt; q.y -= 22 * dt; if (q.t > 1.1) G.pops.splice(i, 1); }
+    netTick -= dt; if (netTick <= 0) { netTick = 0.5; NET.tick(); }
+    if (!NET.connected()) return;
+    // comandos deste celular pro anfitrião
+    const inp = localInput(), sig = (inp.l ? 1 : 0) + '' + (inp.r ? 1 : 0) + (inp.j ? 1 : 0);
+    gInT -= dt;
+    if (sig !== gIn || gInT <= 0) { gIn = sig; gInT = 0.15; NET.send({ t: 'in', l: inp.l, r: inp.r, j: inp.j }); }
+    const s = gSnap; if (!s) return;
+    const inLevel = s.st !== 'menu' && s.li != null;
+    if (inLevel && gLevel !== s.li) guestBuild(s.li);
+    if (!inLevel && G.L) { G.L = null; gLevel = -1; }
+    if (inLevel && G.L) guestLevel(s, dt);
+    guestScreens(s);
+  }
+
   /* ---------------- laço principal ---------------- */
   let last = 0, acc = 0;
   function frame(ts) {
     requestAnimationFrame(frame);
     const now = ts / 1000, dt = Math.min(0.1, now - last || 0); last = now;
     G.pads = readPads();
+    if (NET.role === 'guest') { guestTick(dt); draw(); updateHud(); return; }
     const P = G.pads, any = (k) => P.some((g) => g[k]);
     const pa = any('start') || any('a'), dir = any('u') || any('l') ? -1 : any('d') || any('r') ? 1 : 0;
     if (pa && !padPrev) {
@@ -988,14 +1166,16 @@
       while (acc >= STEP && n < 5) { step(STEP); acc -= STEP; n++; if (!G.L || (G.state !== 'play' && G.state !== 'won')) break; }
       if (n === 5) acc = 0;
     } else G.t += dt;
-    draw(); updateHud(); remoteStatus(dt);
+    draw(); updateHud(); remoteStatus(dt); hostTick(dt);
   }
 
   function boot(data) {
     loadSave();
     G.mode = save.mode; PF.audio.setMuted(save.muted);
     buildTitle(); resize();
-    if (data && data.screen === 'map') goMap(); else goTitle();
+    const joinCode = new URLSearchParams(location.search).get('entrar');
+    if (joinCode) guestStart(joinCode);
+    else if (data && data.screen === 'map') goMap(); else goTitle();
     requestAnimationFrame(frame);
   }
   const hot = window.claude && window.claude.hot;
