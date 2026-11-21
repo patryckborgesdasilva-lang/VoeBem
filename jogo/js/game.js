@@ -402,7 +402,8 @@
     G.static = c;
   }
   function startLevel(i) {
-    G.li = i; G.L = PF.buildLevel(i); G.bg = PF.background(G.L.theme.id); buildStatic();
+    G.mode = save.mode;
+    G.li = i; G.L = PF.buildLevel(i, G.mode); G.bg = PF.background(G.L.theme.id); buildStatic();
     G.L.movers.forEach((m) => { m.x = m.x0; m.y = m.y0; m.py = m.y0; m.dx = m.dy = 0; m.t = 0; });
     G.mode = save.mode;
     G.players = G.mode === 2 ? [newPlayer(0, 0), newPlayer(1, 1)] : [newPlayer(0, save.solo)];
@@ -518,6 +519,13 @@
     buzz(p);
     p.dead = true; p.deadT = 0; p.vy = -290; p.vx = 0; p.hp = 0; p.mover = null; p.chute = false; p.star = 0;
     sfx('die');
+    // em dupla, se um cai os dois perdem
+    if (G.mode === 2) for (const q of G.players) {
+      if (q === p || q.dead) continue;
+      buzz(q);
+      q.dead = true; q.deadT = 0; q.vy = -290; q.vx = 0; q.hp = 0; q.mover = null; q.chute = false; q.star = 0;
+      pop('A DUPLA CAIU!', q.x + q.w / 2, q.y - 8, '#ff9a9a');
+    }
   }
   function hurt(p, fromX) {
     if (p.inv > 0 || p.star > 0 || !alive(p) || G.god) return;
@@ -533,6 +541,14 @@
     else { p.x = G.check.x - 5; p.y = G.check.y - p.h; p.chute = false; snapCam(); }
   }
   function respawn(p) {
+    if (G.mode === 2) {
+      // a dupla volta junta pro último check-in, gastando uma vida do limite em comum
+      if (!G.players.every((q) => q.dead && q.deadT > 1.5)) return;
+      if (G.lives <= 0) { gameOver(); return; }
+      G.lives--;
+      G.players.forEach((q, k) => { place(q); q.x += k * 24; });
+      return;
+    }
     const other = G.players.find((q) => q !== p && alive(q));
     if (G.lives <= 0) { if (other) { p.out = true; pop('SEM LIMITE!', other.x, other.y - 16, '#ff9a9a'); } else gameOver(); return; }
     G.lives--;
