@@ -230,7 +230,8 @@
 
   PF.LEVEL_COUNT = LEVELS.length;
 
-  PF.buildLevel = function (i) {
+  PF.buildLevel = function (i, mode) {
+    const coop = mode !== 1; // no modo de 1 jogador os trechos cooperativos saem ou viram desafios solo
     const cols = [], raw = [];
     let h = 3, x = 0;
     const add = (its) => (its || []).forEach((it) => raw.push({ k: it[0], x, h, a: it.slice(1) }));
@@ -239,15 +240,17 @@
       flat(w, its, o) { for (let k = 0; k < w; k++) cols.push({ h, ice: !!(o && o.ice) }); add(its); x += w; return b; },
       gap(w, its) { for (let k = 0; k < w; k++) cols.push({ h: 0 }); add(its); x += w; return b; },
       // um segura o botão, o outro passa pela cancela e segura o botão do outro lado
-      coopGate(id) { return b.flat(16, [['S', 3, id], ['D', 8, 4, id], ['S', 12, id], ['H', 3, 3, 'SEGURA O BOTÃO!'], ['c', 13, 2, 2]]); },
+      coopGate(id) { if (!coop) return b; return b.flat(16, [['S', 3, id], ['D', 8, 4, id], ['S', 12, id], ['H', 3, 3, 'SEGURA O BOTÃO!'], ['c', 13, 2, 2]]); },
       // paredão: um sobe no pezinho do outro e lá em cima aperta o botão do elevador
       // um segura o botão e a ponte aparece sobre o buraco; do outro lado tem outro botão
-      coopBridge(id) { return b.flat(6, [['S', 3, id], ['H', 3, 3, 'SEGURA A PONTE!']]).gap(8, [['R', 0, 8, id]]).flat(6, [['S', 2, id], ['H', 2, 3, 'AGORA SEGURA VOCÊ!']]); },
+      // sozinho: buraco com plataforma móvel
+      coopBridge(id) { if (!coop) return b.flat(5).gap(8, [['m', 1, 0, 3, 'x', 3, 1.3], ['a', 2, 2, 3]]).flat(5, [['c', 1, 0, 2]]); return b.flat(6, [['S', 3, id], ['H', 3, 3, 'SEGURA A PONTE!']]).gap(8, [['R', 0, 8, id]]).flat(6, [['S', 2, id], ['H', 2, 3, 'AGORA SEGURA VOCÊ!']]); },
       // um segura o botão e o elevador leva o outro até o carimbo lá no alto
-      coopStamp(id) { return b.flat(16, [['S', 2, id], ['L', 9, 2, 6, id], ['p', 11, 5, 4], ['t', 13, 6], ['c', 11, 6, 2], ['H', 2, 3, 'SEGURA O BOTÃO!'], ['H', 12, 8, 'CARIMBO!']]); },
+      // sozinho: escadinha de plataformas até o carimbo, com um pombo no caminho
+      coopStamp(id) { if (!coop) return b.flat(14, [['p', 3, 2, 3], ['p', 7, 5, 2], ['t', 8, 6], ['c', 3, 3, 3], ['e', 'pombo', 10, 4]]); return b.flat(16, [['S', 2, id], ['L', 9, 2, 6, id], ['p', 11, 5, 4], ['t', 13, 6], ['c', 11, 6, 2], ['H', 2, 3, 'SEGURA O BOTÃO!'], ['H', 12, 8, 'CARIMBO!']]); },
       // mala pesada: só anda com os dois empurrando; vira degrau pro paredão
-      coopCrate() { return b.flat(14, [['b', 0, 0, 1], ['C', 3], ['H', 4, 4, 'EMPURREM JUNTOS!']]).up(4).flat(6, [['c', 2, 0, 3]]).up(-4); },
-      coopLift(id) { return b.flat(7, [['L', 5, 2, 5, id], ['H', 3, 5, 'PEZINHO!']]).up(5).flat(8, [['S', 2, id], ['H', 2, 3, 'SEGURA AQUI!'], ['c', 5, 0, 3]]).up(-5); },
+      coopCrate() { if (!coop) return b; return b.flat(14, [['b', 0, 0, 1], ['C', 3], ['H', 4, 4, 'EMPURREM JUNTOS!']]).up(4).flat(6, [['c', 2, 0, 3]]).up(-4); },
+      coopLift(id) { if (!coop) return b; return b.flat(7, [['L', 5, 2, 5, id], ['H', 3, 5, 'PEZINHO!']]).up(5).flat(8, [['S', 2, id], ['H', 2, 3, 'SEGURA AQUI!'], ['c', 5, 0, 3]]).up(-5); },
     };
     LEVELS[i](b);
     const W = cols.length, tiles = new Uint8Array(W * H);
