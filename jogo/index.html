@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Parcelei e Fui</title>
 <link rel="icon" href="img/logo.png">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -27,7 +27,7 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
-html, body { height: 100%; margin: 0; }
+html, body { height: 100%; margin: 0; touch-action: manipulation; overscroll-behavior: none; }
 body { background: var(--ink); color: var(--white); font: 22px/1.1 var(--f-text); overflow: hidden; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: none; }
 *, *::before, *::after { box-sizing: border-box; }
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -37,7 +37,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #cv { position: absolute; display: block; image-rendering: pixelated; touch-action: none; }
 
 /* ---------- placar no topo, estilo fliperama ---------- */
-#hud { position: absolute; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 6px 12px; padding: 8px 12px; font: clamp(7px, 1.15vw, 11px)/1.5 var(--f-8bit); text-transform: uppercase; pointer-events: none; text-shadow: 2px 2px 0 var(--ink); }
+#hud { position: absolute; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 6px 12px; padding: 8px 12px; font: clamp(8px, 1.15vw, 11px)/1.5 var(--f-8bit); text-transform: uppercase; pointer-events: none; text-shadow: 2px 2px 0 var(--ink); }
 .hc { display: grid; gap: 3px; white-space: nowrap; }
 .hl { color: var(--white); }
 .hv { color: var(--gold); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 3px; }
@@ -51,7 +51,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hud-btn[aria-pressed="true"] { color: var(--dim); border-color: var(--dim); }
 
 /* ---------- controles de toque ---------- */
-#touch { position: absolute; inset: 0; z-index: 4; pointer-events: none; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; justify-content: space-between; align-items: flex-end; }
+#touch { position: absolute; inset: 0; z-index: 4; pointer-events: none; touch-action: none; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; justify-content: space-between; align-items: flex-end; }
 .pad { display: grid; grid-template-columns: repeat(2, 62px); gap: 8px; pointer-events: none; }
 .pad.jump { grid-template-columns: 84px; }
 .tb { pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; height: 62px; border: 3px solid rgba(255, 255, 255, .8); background: rgba(9, 22, 13, .55); color: var(--white); font: 16px var(--f-8bit); }
@@ -153,6 +153,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .qr-st { margin: 0; font: 9px/1.6 var(--f-8bit); color: var(--gold); text-transform: uppercase; }
 .qr-st.ok { color: var(--lime); }
 .qr.ok { border-color: var(--lime); }
+.net-qr { justify-self: center; width: min(300px, 100%); }
+.net-qr .hero-name { color: var(--gold); }
 #toast { position: absolute; z-index: 6; left: 50%; bottom: max(24px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100% - 32px); background: var(--panel); border: 4px solid var(--white); box-shadow: 0 0 0 4px var(--ink); padding: 10px 14px; font: 10px/1.6 var(--f-8bit); text-transform: uppercase; color: var(--gold); pointer-events: none; }
 
 @media (max-width: 720px) {
@@ -171,6 +173,22 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .hero canvas { width: 40px; height: 60px; }
   .hero { grid-template-columns: 40px minmax(0, 1fr); }
   .screen { place-items: start center; }
+}
+/* celular deitado: QR code dos 2 celulares ao lado das opções */
+@media (max-height: 500px) {
+  #netscreen .phones-box { grid-template-columns: minmax(0, 1fr) auto; column-gap: 18px; }
+  #netscreen .phones-box > * { grid-column: 1; }
+  #netscreen .net-qr { grid-column: 2; grid-row: 1 / span 6; width: 200px; align-self: center; }
+  #netscreen .qr-img { width: 150px; }
+}
+/* celular deitado: botões menores e mais transparentes pra não cobrir a fase */
+@media (max-height: 500px) and (pointer: coarse) {
+  .pad { grid-template-columns: repeat(2, 52px); gap: 6px; }
+  .pad.jump { grid-template-columns: 68px; }
+  .tb { height: 48px; background: rgba(9, 22, 13, .22); border-color: rgba(255, 255, 255, .55); font-size: 13px; }
+  .tb.wide { height: 40px; }
+  .pad.jump .tb { height: 68px; }
+  .pad[data-p="1"] .tb { border-color: rgba(255, 173, 77, .7); }
 }
 @media (prefers-reduced-motion: reduce) { .blink, .mi::before { animation: none !important; } }
 </style>
@@ -206,6 +224,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
           <li><button type="button" class="mi go" data-mode="2">2 jogadores</button></li>
           <li><button type="button" class="mi" data-mode="1" data-solo="0">1 jogador · Patryck</button></li>
           <li><button type="button" class="mi" data-mode="1" data-solo="1">1 jogador · Mari</button></li>
+          <li><button type="button" class="mi" id="btnNet">2 celulares · cada um no seu</button></li>
           <li><button type="button" class="mi" id="btnPhones">Controle no celular</button></li>
         </ul>
       </nav>
@@ -250,6 +269,31 @@ button { font: inherit; color: inherit; cursor: pointer; }
       </div>
       <p class="hint" id="phonesMsg"></p>
       <ul class="menu"><li><button type="button" id="btnPhonesBack" class="mi go">Pronto</button></li></ul>
+    </div>
+  </section>
+
+  <section id="netscreen" class="screen" hidden>
+    <div class="box phones-box">
+      <h2 class="box-title">2 celulares</h2>
+      <p class="story">Cada um joga no seu celular. Escolha quem você é e peça pro outro apontar a câmera pro código.</p>
+      <ul class="menu" id="netWho">
+        <li><button type="button" class="mi" data-me="0">Eu sou o Patryck</button></li>
+        <li><button type="button" class="mi" data-me="1">Eu sou a Mari</button></li>
+      </ul>
+      <div class="qr net-qr" id="netQr"><p class="hero-name" id="netFor"></p><div class="qr-img"></div><p class="qr-st"></p></div>
+      <p class="hint" id="netMsgHost"></p>
+      <ul class="menu">
+        <li><button type="button" id="btnNetGo" class="mi go">Escolher a fase</button></li>
+        <li><button type="button" id="btnNetBack" class="mi">Voltar</button></li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="netmsg" class="screen" hidden>
+    <div class="box card">
+      <h2 class="box-title" id="netMsgTitle"></h2>
+      <p class="story" id="netMsgText"></p>
+      <ul class="menu"><li><button type="button" id="btnNetResume" class="mi go">Continuar</button></li></ul>
     </div>
   </section>
 
@@ -303,6 +347,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 <script src="vendor/peerjs.min.js"></script>
 <script src="vendor/qrcode.js"></script>
 <script src="js/remote.js"></script>
+<script src="js/net.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>
