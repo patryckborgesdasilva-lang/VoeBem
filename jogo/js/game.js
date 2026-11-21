@@ -134,14 +134,22 @@
   })();
 
   /* ---------------- tela e escala ---------------- */
+  let satProbe = null;
+  function safeTop() {
+    if (!satProbe) { satProbe = document.createElement('div'); satProbe.style.cssText = 'position:absolute;visibility:hidden;padding-top:env(safe-area-inset-top,0px)'; document.body.appendChild(satProbe); }
+    return parseFloat(getComputedStyle(satProbe).paddingTop) || 0;
+  }
   function resize() {
     const app = $('app'), W = app.clientWidth, Hh = app.clientHeight;
     if (!W || !Hh) return;
     const asp = W / Hh, wide = asp >= 320 / VH;
     let cw, ch;
     if (wide) { ch = Hh; VW = Math.min(640, Math.round(VH * asp)); cw = Math.min(W, (ch * VW) / VH); }
-    else { VW = 320; cw = W; ch = (W * VH) / VW; }
-    const left = (W - cw) / 2, top = wide ? 0 : Math.max(0, (Hh - ch) * 0.2);
+    else {
+      // celular em pé: aproxima a câmera pra fase ocupar ~60% da tela; os botões ficam embaixo
+      VW = clamp(Math.round((W * VH) / (Hh * 0.6)), 200, 320); cw = W; ch = (W * VH) / VW;
+    }
+    const left = (W - cw) / 2, top = wide ? 0 : Math.min(safeTop(), Math.max(0, Hh - ch));
     cv.style.width = cw + 'px'; cv.style.height = ch + 'px'; cv.style.left = left + 'px'; cv.style.top = top + 'px';
     const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
     cv.height = Math.max(VH, Math.round(ch * dpr)); scale = cv.height / VH; cv.width = Math.round(VW * scale);
@@ -150,6 +158,21 @@
     hud.style.left = left + 'px'; hud.style.top = top + 'px'; hud.style.width = cw + 'px';
   }
   addEventListener('resize', resize);
+  // celular: toque duplo e pinça não dão zoom; os menus continuam rolando com o dedo
+  ['gesturestart', 'gesturechange', 'gestureend', 'dblclick'].forEach((ev) => document.addEventListener(ev, (e) => e.preventDefault(), { passive: false }));
+  ['touchstart', 'touchend', 'touchmove'].forEach((ev) => {
+    document.addEventListener(ev, (e) => {
+      if (!e.cancelable) return;
+      if (e.touches && e.touches.length > 1) { e.preventDefault(); return; }
+      if (e.target === cv || (e.target.closest && e.target.closest('#touch, .tb'))) e.preventDefault();
+    }, { passive: false });
+  });
+  const vpMeta = document.querySelector('meta[name="viewport"]'), vpContent = vpMeta ? vpMeta.getAttribute('content') : '';
+  setInterval(() => {
+    if (!vpMeta || !window.visualViewport || window.visualViewport.scale <= 1.02) return;
+    vpMeta.setAttribute('content', vpContent + ', minimum-scale=1');
+    setTimeout(() => vpMeta.setAttribute('content', vpContent), 60);
+  }, 800);
 
   /* ---------------- telas (DOM) ---------------- */
   const SCREENS = ['title', 'map', 'intro', 'phones', 'pause', 'clear', 'over', 'ending'];
@@ -369,6 +392,7 @@
     if (G.state !== 'intro') return;
     for (const k in keys) keys[k] = false;
     G.state = 'play'; acc = 0; screen(null); setHud(true); buildTouch(); PF.audio.music(G.L.theme.tune);
+    if (isTouch && innerHeight > innerWidth && !G.rotTip) { G.rotTip = true; toast('Dica: deite o celular pra ver mais da fase'); }
   }
 
   /* ---------------- fase ---------------- */

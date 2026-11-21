@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Parcelei e Fui</title>
 <link rel="icon" href="img/logo.png">
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -27,7 +27,7 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
-html, body { height: 100%; margin: 0; }
+html, body { height: 100%; margin: 0; touch-action: manipulation; overscroll-behavior: none; }
 body { background: var(--ink); color: var(--white); font: 22px/1.1 var(--f-text); overflow: hidden; -webkit-tap-highlight-color: transparent; -webkit-font-smoothing: none; }
 *, *::before, *::after { box-sizing: border-box; }
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -37,7 +37,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 #cv { position: absolute; display: block; image-rendering: pixelated; touch-action: none; }
 
 /* ---------- placar no topo, estilo fliperama ---------- */
-#hud { position: absolute; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 6px 12px; padding: 8px 12px; font: clamp(7px, 1.15vw, 11px)/1.5 var(--f-8bit); text-transform: uppercase; pointer-events: none; text-shadow: 2px 2px 0 var(--ink); }
+#hud { position: absolute; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 6px 12px; padding: 8px 12px; font: clamp(8px, 1.15vw, 11px)/1.5 var(--f-8bit); text-transform: uppercase; pointer-events: none; text-shadow: 2px 2px 0 var(--ink); }
 .hc { display: grid; gap: 3px; white-space: nowrap; }
 .hl { color: var(--white); }
 .hv { color: var(--gold); font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 3px; }
@@ -51,7 +51,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .hud-btn[aria-pressed="true"] { color: var(--dim); border-color: var(--dim); }
 
 /* ---------- controles de toque ---------- */
-#touch { position: absolute; inset: 0; z-index: 4; pointer-events: none; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; justify-content: space-between; align-items: flex-end; }
+#touch { position: absolute; inset: 0; z-index: 4; pointer-events: none; touch-action: none; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; justify-content: space-between; align-items: flex-end; }
 .pad { display: grid; grid-template-columns: repeat(2, 62px); gap: 8px; pointer-events: none; }
 .pad.jump { grid-template-columns: 84px; }
 .tb { pointer-events: auto; touch-action: none; user-select: none; -webkit-user-select: none; height: 62px; border: 3px solid rgba(255, 255, 255, .8); background: rgba(9, 22, 13, .55); color: var(--white); font: 16px var(--f-8bit); }
@@ -171,6 +171,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
   .hero canvas { width: 40px; height: 60px; }
   .hero { grid-template-columns: 40px minmax(0, 1fr); }
   .screen { place-items: start center; }
+}
+/* celular deitado: botões menores e mais transparentes pra não cobrir a fase */
+@media (max-height: 500px) and (pointer: coarse) {
+  .pad { grid-template-columns: repeat(2, 52px); gap: 6px; }
+  .pad.jump { grid-template-columns: 68px; }
+  .tb { height: 48px; background: rgba(9, 22, 13, .22); border-color: rgba(255, 255, 255, .55); font-size: 13px; }
+  .tb.wide { height: 40px; }
+  .pad.jump .tb { height: 68px; }
+  .pad[data-p="1"] .tb { border-color: rgba(255, 173, 77, .7); }
 }
 @media (prefers-reduced-motion: reduce) { .blink, .mi::before { animation: none !important; } }
 </style>
